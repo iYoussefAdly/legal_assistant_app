@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:legal_assistant_app/views/sign_in_view.dart';
 class TestView extends StatelessWidget {
   const TestView({super.key});
 
@@ -10,7 +11,7 @@ class TestView extends StatelessWidget {
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => ),
+            MaterialPageRoute(builder: (context) => SignInView()),
           );
         },
         child: Text('click me :D', style: TextStyle(color: Colors.white)),
