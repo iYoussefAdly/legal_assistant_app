@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:legal_assistant_app/constants.dart';
-import 'package:legal_assistant_app/views/widgets/chat_view_body.dart';
-
+import 'package:legal_assistant_app/presentation/widgets/chat_widget/chat_view_body.dart';
 class ChatView extends StatelessWidget {
   const ChatView({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Container(

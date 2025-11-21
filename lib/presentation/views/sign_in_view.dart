@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:legal_assistant_app/presentation/widgets/sign_in_view_body.dart';
+import 'package:legal_assistant_app/presentation/widgets/auth_widgets/sign_in_view_body.dart';
 
 class SignInView extends StatelessWidget {
   const SignInView({super.key});

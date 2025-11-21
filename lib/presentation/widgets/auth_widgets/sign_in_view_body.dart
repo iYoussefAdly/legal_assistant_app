@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:legal_assistant_app/core/utils/app_styles.dart';
-import 'package:legal_assistant_app/presentation/widgets/custom_button.dart';
-import 'package:legal_assistant_app/presentation/widgets/custom_text_field.dart';
-import 'package:legal_assistant_app/presentation/widgets/sign_in_header.dart';
+import 'package:legal_assistant_app/presentation/widgets/auth_widgets/custom_button.dart';
+import 'package:legal_assistant_app/presentation/widgets/auth_widgets/custom_text_field.dart';
+import 'package:legal_assistant_app/presentation/widgets/auth_widgets/sign_in_header.dart';
 
 class SignInViewBody extends StatelessWidget {
   const SignInViewBody({super.key});

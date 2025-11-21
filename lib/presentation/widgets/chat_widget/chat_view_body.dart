@@ -1,10 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:legal_assistant_app/core/utils/app_styles.dart';
-import 'package:legal_assistant_app/views/widgets/custom_widget/bubble_chat.dart';
-import 'package:legal_assistant_app/views/widgets/custom_widget/bubble_chat_ai.dart';
-import 'package:legal_assistant_app/views/widgets/custom_widget/container_chat.dart';
-import 'package:legal_assistant_app/views/widgets/custom_widget/container_chat_bottom.dart';
+import 'package:legal_assistant_app/presentation/widgets/chat_widget/bubble_chat.dart';
+import 'package:legal_assistant_app/presentation/widgets/chat_widget/bubble_chat_ai.dart';
+import 'package:legal_assistant_app/presentation/widgets/chat_widget/container_chat.dart';
+import 'package:legal_assistant_app/presentation/widgets/chat_widget/container_chat_bottom.dart';
 
 class ChatViewBody extends StatelessWidget {
   const ChatViewBody({super.key});
