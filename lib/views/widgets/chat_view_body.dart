@@ -5,6 +5,7 @@ import 'package:legal_assistant_app/views/widgets/custom_widget/bubble_chat.dart
 import 'package:legal_assistant_app/views/widgets/custom_widget/bubble_chat_ai.dart';
 import 'package:legal_assistant_app/views/widgets/custom_widget/container_chat.dart';
 import 'package:legal_assistant_app/views/widgets/custom_widget/container_chat_bottom.dart';
+import 'package:legal_assistant_app/views/widgets/custom_widget/attachment_bottom_sheet.dart';
 
 class ChatViewBody extends StatelessWidget {
   const ChatViewBody({super.key});
@@ -12,16 +13,17 @@ class ChatViewBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context).size;
+
     return Padding(
       padding: EdgeInsets.only(
-        top: media.height * .1,
+        top: media.height * .06, // قللت المسافة العلوية قليلاً لتناسب معظم الشاشات
         bottom: media.height * .02,
         left: media.width * .03,
         right: media.width * .03,
       ),
       child: Column(
-        spacing: media.height * .03,
         children: [
+          // --- Header Section ---
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -46,6 +48,10 @@ class ChatViewBody extends StatelessWidget {
               ContainerChat(icon: Icons.menu),
             ],
           ),
+
+          SizedBox(height: media.height * .03), // بديل الـ spacing
+
+          // --- Date Divider Section ---
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -64,40 +70,50 @@ class ChatViewBody extends StatelessWidget {
               ),
             ],
           ),
-          Container(
-            height: media.height * .52,
+
+          SizedBox(height: media.height * .02), // مسافة قبل الشات
+
+          // --- Chat Messages Area (Expanded) ---
+          // استخدمنا Expanded هنا ليأخذ المساحة المتبقية بالكامل
+          Expanded(
             child: SingleChildScrollView(
               child: Column(
-                spacing: media.height * .05,
                 children: [
                   ChatBubbleAi(
                     message:
-                        'Hello! I’m your Smart Legal Assistant.How can I help you today?',
+                    'Hello! I’m your Smart Legal Assistant.How can I help you today?',
                     avatarImage: Image.asset('assets/images/bubble.png'),
                   ),
+                  SizedBox(height: media.height * .03), // مسافة بين الرسائل
                   ChatBubble(
                     message: ' Can my employer fire me without notice?',
                   ),
+                  SizedBox(height: media.height * .03),
                   ChatBubbleAi(
                     message:
-                        'In most cases, an employer must provide a notice period unless there is a serious violation stated in the contract.',
+                    'In most cases, an employer must provide a notice period unless there is a serious violation stated in the contract.',
                     avatarImage: Image.asset('assets/images/bubble.png'),
                   ),
+                  SizedBox(height: media.height * .03),
                   ChatBubble(message: 'Can you give me reference?'),
+                  SizedBox(height: media.height * .03),
                   ChatBubbleAi(
                     message: 'Reference:\nLabor Law – Article 75',
                     avatarImage: Image.asset('assets/images/bubble.png'),
                   ),
+                  // مسافة صغيرة في نهاية الشات لعدم الالتصاق بصندوق الكتابة
+                  SizedBox(height: media.height * .02),
                 ],
               ),
             ),
           ),
+
+          // --- Bottom Input Section ---
           ContainerChatBottom(
             height: media.height * .15,
             width: media.width,
             borderRadius: 10,
             child: Column(
-              spacing: media.height * .02,
               children: [
                 TextField(
                   decoration: InputDecoration(
@@ -110,11 +126,23 @@ class ChatViewBody extends StatelessWidget {
                     border: InputBorder.none,
                   ),
                 ),
+                // مسافة داخل الـ Bottom Container
+                SizedBox(height: media.height * .01),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     GestureDetector(
+                      onTap: () {
+                        showModalBottomSheet(
+                          context: context,
+                          backgroundColor: Colors.transparent,
+                          isScrollControlled: true,
+                          builder: (context) {
+                            return const AttachmentBottomSheet();
+                          },
+                        );
+                      },
                       child: ContainerChatBottom(
                         height: media.height * .04,
                         width: media.width * .12,
@@ -131,16 +159,17 @@ class ChatViewBody extends StatelessWidget {
                           children: [
                             Icon(Icons.travel_explore, size: 22),
                             SizedBox(width: 6),
-                            Text(
-                              'Type your question',
-                              style: AppStyles.styleRegular14,
-                              overflow: TextOverflow.ellipsis,
+                            Expanded( // إضافة Expanded للنص الطويل لتجنب الخطأ
+                              child: Text(
+                                'Type your question',
+                                style: AppStyles.styleRegular14,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ),
-
                     GestureDetector(
                       child: ContainerChatBottom(
                         height: media.height * .04,
