@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:legal_assistant_app/presentation/test_view.dart';
+import 'package:legal_assistant_app/presentation/views/splash_view.dart';
 
 void main() {
   runApp(const LegalAssistantApp());
@@ -10,7 +11,7 @@ class LegalAssistantApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: TestView(),
+      home: SplashScreen(),
     );
   }
 }

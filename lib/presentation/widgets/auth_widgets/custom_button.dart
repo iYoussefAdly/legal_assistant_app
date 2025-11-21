@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:legal_assistant_app/core/utils/app_styles.dart';
 
 class CustomButton extends StatelessWidget {
-  const CustomButton({super.key, required this.buttonName, required this.onTap});
+  const CustomButton({super.key, required this.buttonName, required this.onTap,});
   final String buttonName;
   final void Function() onTap;
   @override
