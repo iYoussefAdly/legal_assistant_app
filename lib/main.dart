@@ -10,6 +10,9 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(home: ChatView());
+    return MaterialApp(
+      debugShowCheckedModeBanner: false, // تم إضافة هذا السطر لإخفاء علامة Debug
+      home: ChatView(),
+    );
   }
 }
