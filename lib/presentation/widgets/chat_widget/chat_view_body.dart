@@ -5,10 +5,8 @@ import 'package:legal_assistant_app/presentation/widgets/chat_widget/bubble_chat
 import 'package:legal_assistant_app/presentation/widgets/chat_widget/bubble_chat_ai.dart';
 import 'package:legal_assistant_app/presentation/widgets/chat_widget/container_chat.dart';
 import 'package:legal_assistant_app/presentation/widgets/chat_widget/container_chat_bottom.dart';
-
 class ChatViewBody extends StatelessWidget {
   const ChatViewBody({super.key});
-
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context).size;
