@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:legal_assistant_app/core/utils/app_styles.dart';
+import 'package:legal_assistant_app/presentation/views/chat_view.dart';
 import 'package:legal_assistant_app/presentation/widgets/auth_widgets/custom_button.dart';
 import 'package:legal_assistant_app/presentation/widgets/auth_widgets/custom_text_field.dart';
 import 'package:legal_assistant_app/presentation/widgets/auth_widgets/sign_in_header.dart';
@@ -54,7 +55,15 @@ class SignInViewBody extends StatelessWidget {
           SizedBox(height: 32),
           Align(
             alignment: Alignment.center,
-            child: CustomButton(buttonName: "Login", onTap: () {}),
+            child: CustomButton(
+              buttonName: "Login",
+              onTap: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => ChatView()),
+                );
+              },
+            ),
           ),
         ],
       ),
