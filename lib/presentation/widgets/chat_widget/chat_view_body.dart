@@ -139,7 +139,7 @@ class ChatViewBody extends StatelessWidget {
                           backgroundColor: Colors.transparent,
                           isScrollControlled: true,
                           builder: (context) {
-                            return const AttachmentBottomSheet();
+                            return  AttachmentBottomSheet();
                           },
                         );
                       },
@@ -159,7 +159,7 @@ class ChatViewBody extends StatelessWidget {
                           children: [
                             Icon(Icons.travel_explore, size: 22),
                             SizedBox(width: 6),
-                            Expanded( // إضافة Expanded للنص الطويل لتجنب الخطأ
+                            Expanded(
                               child: Text(
                                 'Type your question',
                                 style: AppStyles.styleRegular14,
