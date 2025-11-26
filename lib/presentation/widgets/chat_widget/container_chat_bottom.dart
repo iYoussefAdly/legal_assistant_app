@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class ContainerChatBottom extends StatelessWidget {
@@ -28,7 +27,7 @@ class ContainerChatBottom extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(color: Colors.white.withOpacity(0.5), width: 1.5),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: child,

@@ -32,7 +32,7 @@ class ChatBubbleAi extends StatelessWidget {
                   end: Alignment.bottomRight,
                 ),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   width: 1.5,
                 ),
                 shape: BoxShape.circle,
@@ -60,12 +60,12 @@ class ChatBubbleAi extends StatelessWidget {
                     end: Alignment.bottomRight,
                   ),
                   border: Border.all(
-                    color: Colors.white.withOpacity(0.5),
+                    color: Colors.white.withValues(alpha: 0.5),
                     width: 1.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.07),
+                      color: Colors.black.withValues(alpha: 0.07),
                       blurRadius: 12,
                       offset: Offset(0, 4),
                     ),
@@ -89,7 +89,7 @@ class ChatBubbleAi extends StatelessWidget {
                 end: Alignment.bottomRight,
               ),
               border: Border.all(
-                color: Colors.white.withOpacity(0.5),
+                color: Colors.white.withValues(alpha: 0.5),
                 width: 1.5,
               ),
               shape: BoxShape.circle,
