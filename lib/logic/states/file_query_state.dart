@@ -34,3 +34,4 @@ class FileQueryFailure extends FileQueryState {
   List<Object?> get props => [message];
 }
 
+

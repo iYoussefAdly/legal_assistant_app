@@ -34,3 +34,4 @@ class TextQueryFailure extends TextQueryState {
   List<Object?> get props => [message];
 }
 
+

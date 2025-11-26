@@ -27,3 +27,4 @@ class ResetResponse extends Equatable {
   List<Object?> get props => [success, message];
 }
 
+

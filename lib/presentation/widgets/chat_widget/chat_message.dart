@@ -31,3 +31,4 @@ class ChatMessage extends Equatable {
       [role, kind, content, riskLevel, sources, fullText];
 }
 
+

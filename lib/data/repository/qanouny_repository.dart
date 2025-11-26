@@ -13,6 +13,13 @@ class QanounyRepository {
   final QanounyApiService _apiService;
 
   Future<TextQueryResponse> sendTextQuery(String question) async {
+    // Validate and sanitize the question
+    if (question.isEmpty) {
+      throw const QanounyRepositoryException(
+        'Please type your legal question before submitting.',
+      );
+    }
+    
     final sanitizedQuestion = question.trim();
     if (sanitizedQuestion.isEmpty) {
       throw const QanounyRepositoryException(
@@ -25,7 +32,11 @@ class QanounyRepository {
       return TextQueryResponse.fromJson(payload);
     } on QanounyApiException catch (error) {
       throw QanounyRepositoryException(error.message);
-    } catch (_) {
+    } catch (e) {
+      // If it's already a repository exception, rethrow it
+      if (e is QanounyRepositoryException) {
+        rethrow;
+      }
       throw const QanounyRepositoryException(
         'Unable to process your question right now. Please retry.',
       );
@@ -141,4 +152,5 @@ class QanounyRepositoryException implements Exception {
   @override
   String toString() => message;
 }
+
 

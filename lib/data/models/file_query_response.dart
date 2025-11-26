@@ -51,3 +51,4 @@ class FileQueryResponse extends Equatable {
       [success, fullText, query, answer, riskLevel, sources];
 }
 
+

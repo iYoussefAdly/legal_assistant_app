@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -35,13 +36,38 @@ class QanounyApiService {
   final Dio _dio;
 
   Future<Map<String, dynamic>> sendTextQuery(String question) async {
-    return _execute(
-      () => _dio.post(
+    // Validate question is not empty
+    final trimmedQuestion = question.trim();
+    if (trimmedQuestion.isEmpty) {
+      throw const QanounyApiException(
+        'Question cannot be empty. Please provide a valid question.',
+      );
+    }
+
+    try {
+      // Backend expects url-encoded form data
+      final response = await _dio.post(
         '/api/query/text',
-        data: {'question': question},
-        options: Options(contentType: Headers.jsonContentType),
-      ),
-    );
+        data: {
+          'question': trimmedQuestion,
+        },
+        options: Options(
+          contentType: Headers.formUrlEncodedContentType,
+          headers: {
+            'accept': 'application/json',
+          },
+        ),
+      );
+
+      return _asMap(response.data);
+    } on DioException catch (error) {
+      throw QanounyApiException(_resolveDioMessage(error));
+    } catch (e) {
+      if (e is QanounyApiException) {
+        rethrow;
+      }
+      throw QanounyApiException('Failed to send question: ${e.toString()}');
+    }
   }
 
   Future<Map<String, dynamic>> sendAudioQuery(String filePath) async {
@@ -100,12 +126,68 @@ class QanounyApiService {
 
   String _resolveDioMessage(DioException error) {
     final responseData = error.response?.data;
+    
+    // Handle validation errors (often in 'detail' field as a list)
+    if (responseData is Map && responseData['detail'] != null) {
+      final detail = responseData['detail'];
+      if (detail is List) {
+        // Format validation errors from list with user-friendly messages
+        final messages = detail.map((e) {
+          if (e is Map) {
+            final loc = e['loc'];
+            final msg = e['msg'];
+            if (loc != null && msg != null) {
+              final field = loc is List && loc.length > 1 ? loc.last : 'field';
+              final fieldName = field.toString();
+              final message = msg.toString();
+              
+              // Provide user-friendly error messages
+              if (fieldName == 'question' && message.toLowerCase().contains('required')) {
+                return 'Please enter a question before sending.';
+              }
+              if (message.toLowerCase().contains('required')) {
+                return '${fieldName.toString().replaceAll('_', ' ').split(' ').map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1)).join(' ')} is required.';
+              }
+              return '${fieldName.toString()}: ${message.toString()}';
+            }
+          }
+          return e.toString();
+        }).join(', ');
+        return messages.isNotEmpty ? messages : detail.toString();
+      }
+      return detail.toString();
+    }
+    
     if (responseData is Map && responseData['message'] != null) {
       return responseData['message'].toString();
     }
-    if (responseData is Map && responseData['detail'] != null) {
-      return responseData['detail'].toString();
+    
+    // Handle validation errors as list in responseData
+    if (responseData is List) {
+      final messages = responseData.map((e) {
+        if (e is Map) {
+          final loc = e['loc'];
+          final msg = e['msg'];
+          if (loc != null && msg != null) {
+            final field = loc is List && loc.length > 1 ? loc.last : 'field';
+            final fieldName = field.toString();
+            final message = msg.toString();
+            
+            // Provide user-friendly error messages
+            if (fieldName == 'question' && message.toLowerCase().contains('required')) {
+              return 'Please enter a question before sending.';
+            }
+            if (message.toLowerCase().contains('required')) {
+              return '${fieldName.toString().replaceAll('_', ' ').split(' ').map((w) => w.isEmpty ? w : w[0].toUpperCase() + w.substring(1)).join(' ')} is required.';
+            }
+            return '${fieldName.toString()}: ${message.toString()}';
+          }
+        }
+        return e.toString();
+      }).join(', ');
+      return messages.isNotEmpty ? messages : 'Validation error occurred.';
     }
+    
     if (error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout) {
       return 'The server is taking too long to respond. Please try again shortly.';
@@ -119,4 +201,5 @@ class QanounyApiService {
     return 'Request failed. Please try again.';
   }
 }
+
 

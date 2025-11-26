@@ -177,26 +177,37 @@ class _ChatViewBodyState extends State<ChatViewBody> {
                 ),
                 SizedBox(height: media.height * .02),
                 ContainerChatBottom(
-                  height: media.height * .15,
                   width: media.width,
                   borderRadius: 10,
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      TextField(
-                        controller: _questionController,
-                        focusNode: _questionFocusNode,
-                        minLines: 1,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          hintText: 'Message Qanouny AI...',
-                          hintStyle: AppStyles.styleRegular16,
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: media.height * .02,
-                            horizontal: media.width * .04,
-                          ),
-                          border: InputBorder.none,
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: media.height * .04,
+                          maxHeight: media.height * .15,
                         ),
-                        onSubmitted: (_) => _sendTextQuestion(),
+                        child: SingleChildScrollView(
+                          child: TextField(
+                            controller: _questionController,
+                            focusNode: _questionFocusNode,
+                            minLines: 1,
+                            maxLines: null,
+                            textInputAction: TextInputAction.newline,
+                            keyboardType: TextInputType.multiline,
+                            decoration: InputDecoration(
+                              hintText: 'Message Qanouny AI...',
+                              hintStyle: AppStyles.styleRegular16,
+                              contentPadding: EdgeInsets.symmetric(
+                                vertical: media.height * .02,
+                                horizontal: media.width * .04,
+                              ),
+                              border: InputBorder.none,
+                            ),
+                            onSubmitted: (_) => _sendTextQuestion(),
+                          ),
+                        ),
                       ),
                       SizedBox(height: media.height * .01),
                       Row(
@@ -302,15 +313,36 @@ class _ChatViewBodyState extends State<ChatViewBody> {
   }
 
   Future<void> _sendTextQuestion() async {
-    final question = _questionController.text.trim();
+    // Get the text from controller
+    final rawText = _questionController.text;
+    
+    // Trim and validate
+    final question = rawText.trim();
+    
+    // Check if question is empty after trimming
     if (question.isEmpty) {
       _setError('Please type a legal question before sending.');
+      _questionFocusNode.requestFocus();
       return;
     }
+    
+    // Clear any previous errors
     _clearError();
+    
+    // Store question before clearing controller
+    final questionToSend = question;
+    
+    // Clear the controller
     _questionController.clear();
-    _addUserMessage(question);
-    context.read<TextQueryCubit>().sendTextQuery(question);
+    
+    // Unfocus the text field
+    _questionFocusNode.unfocus();
+    
+    // Add user message to chat
+    _addUserMessage(questionToSend);
+    
+    // Send the query
+    context.read<TextQueryCubit>().sendTextQuery(questionToSend);
   }
 
   Future<void> _pickAudioFile() async {
@@ -473,9 +505,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
     setState(() {
       _errorMessage = message;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    // Error is already displayed in the ErrorMessage widget, no need for snackbar
   }
 
   void _clearError() {

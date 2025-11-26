@@ -46,3 +46,4 @@ class TextQueryResponse extends Equatable {
   List<Object?> get props => [success, query, answer, riskLevel, sources];
 }
 
+

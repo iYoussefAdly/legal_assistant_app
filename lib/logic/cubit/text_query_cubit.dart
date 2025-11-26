@@ -38,3 +38,4 @@ class TextQueryCubit extends Cubit<TextQueryState> {
   }
 }
 
+
