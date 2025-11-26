@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 abstract class AppStyles {
@@ -19,6 +18,10 @@ abstract class AppStyles {
   );
   static const styleRegular14 = TextStyle(
     fontSize: 14,
+    fontWeight: FontWeight.w400,
+  );
+  static const styleRegular12 = TextStyle(
+    fontSize: 12,
     fontWeight: FontWeight.w400,
   );
   static const styleRegular18 = TextStyle(

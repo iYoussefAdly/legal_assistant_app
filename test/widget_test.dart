@@ -5,26 +5,19 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
+import 'package:legal_assistant_app/data/api/qanouny_api_service.dart';
+import 'package:legal_assistant_app/data/repository/qanouny_repository.dart';
 import 'package:legal_assistant_app/main.dart';
+import 'package:legal_assistant_app/presentation/views/splash_view.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const LegalAssistantApp());
+  testWidgets('LegalAssistantApp shows splash screen on launch',
+      (WidgetTester tester) async {
+    final repository = QanounyRepository(QanounyApiService());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    await tester.pumpWidget(LegalAssistantApp(repository: repository));
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.byType(SplashScreen), findsOneWidget);
   });
 }
