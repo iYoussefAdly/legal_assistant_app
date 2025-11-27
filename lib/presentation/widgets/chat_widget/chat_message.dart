@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:legal_assistant_app/data/models/legal_source.dart';
 
 enum MessageRole { user, assistant }
 
@@ -10,7 +11,8 @@ class ChatMessage extends Equatable {
     required this.content,
     this.kind = MessageKind.text,
     this.riskLevel,
-    this.sources = const [],
+    this.citedSources = const [],
+    this.termsSummary = const [],
     this.fullText,
   });
 
@@ -18,17 +20,25 @@ class ChatMessage extends Equatable {
   final MessageKind kind;
   final String content;
   final String? riskLevel;
-  final List<String> sources;
+  final List<CitedSource> citedSources;
+  final List<String> termsSummary;
   final String? fullText;
 
   bool get hasMetadata =>
       (riskLevel?.isNotEmpty ?? false) ||
-      sources.isNotEmpty ||
+      citedSources.isNotEmpty ||
+      termsSummary.isNotEmpty ||
       (fullText?.isNotEmpty ?? false);
 
   @override
-  List<Object?> get props =>
-      [role, kind, content, riskLevel, sources, fullText];
+  List<Object?> get props => [
+        role,
+        kind,
+        content,
+        riskLevel,
+        citedSources,
+        termsSummary,
+        fullText,
+      ];
 }
-
 

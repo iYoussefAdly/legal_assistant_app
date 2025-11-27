@@ -1,4 +1,6 @@
 import 'package:equatable/equatable.dart';
+import 'package:legal_assistant_app/data/models/file_upload_metadata.dart';
+import 'package:legal_assistant_app/data/models/legal_source.dart';
 
 class FileQueryResponse extends Equatable {
   const FileQueryResponse({
@@ -8,6 +10,10 @@ class FileQueryResponse extends Equatable {
     required this.answer,
     required this.riskLevel,
     required this.sources,
+    required this.citedSources,
+    required this.termsSummary,
+    this.uploadedFileName,
+    this.uploadType,
   });
 
   final bool success;
@@ -15,40 +21,53 @@ class FileQueryResponse extends Equatable {
   final String query;
   final String answer;
   final String riskLevel;
-  final List<String> sources;
+  final List<SourceReference> sources;
+  final List<CitedSource> citedSources;
+  final List<String> termsSummary;
+  final String? uploadedFileName;
+  final FileUploadType? uploadType;
 
-  factory FileQueryResponse.fromJson(Map<String, dynamic> json) {
+  factory FileQueryResponse.fromJson(
+    Map<String, dynamic> json, {
+    String? uploadedFileName,
+    FileUploadType? uploadType,
+  }) {
     return FileQueryResponse(
       success: json['success'] as bool? ?? false,
       fullText: json['full_text']?.toString() ?? '',
       query: json['query']?.toString() ?? '',
       answer: json['answer']?.toString() ?? '',
       riskLevel: json['risk_level']?.toString() ?? '',
-      sources: _parseSources(json['sources']),
+      sources: SourceReference.listFromJson(json['sources']),
+      citedSources: CitedSource.listFromJson(json['cited_sources']),
+      termsSummary: _parseTermsSummary(json['terms_summary']),
+      uploadedFileName: uploadedFileName,
+      uploadType: uploadType,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'success': success,
-      'full_text': fullText,
-      'query': query,
-      'answer': answer,
-      'risk_level': riskLevel,
-      'sources': sources,
-    };
-  }
-
-  static List<String> _parseSources(dynamic value) {
+  static List<String> _parseTermsSummary(dynamic value) {
     if (value is List) {
       return value.map((item) => item.toString()).toList();
+    }
+    if (value is String && value.isNotEmpty) {
+      return [value];
     }
     return const [];
   }
 
   @override
-  List<Object?> get props =>
-      [success, fullText, query, answer, riskLevel, sources];
+  List<Object?> get props => [
+        success,
+        fullText,
+        query,
+        answer,
+        riskLevel,
+        sources,
+        citedSources,
+        termsSummary,
+        uploadedFileName,
+        uploadType,
+      ];
 }
-
 

@@ -4,7 +4,8 @@ import 'package:legal_assistant_app/data/api/api_exception.dart';
 import 'package:legal_assistant_app/data/api/qanouny_api_service.dart';
 import 'package:legal_assistant_app/data/models/audio_query_response.dart';
 import 'package:legal_assistant_app/data/models/file_query_response.dart';
-import 'package:legal_assistant_app/data/models/reset_response.dart';
+import 'package:legal_assistant_app/data/models/file_upload_metadata.dart';
+import 'package:legal_assistant_app/data/models/init_chat_response.dart';
 import 'package:legal_assistant_app/data/models/text_query_response.dart';
 
 class QanounyRepository {
@@ -63,7 +64,8 @@ class QanounyRepository {
 
     try {
       final payload = await _apiService.sendAudioQuery(sanitizedPath);
-      return AudioQueryResponse.fromJson(payload);
+      final normalizedPayload = _normalizeAudioResponse(payload);
+      return AudioQueryResponse.fromJson(normalizedPayload);
     } on QanounyApiException catch (error) {
       throw QanounyRepositoryException(error.message);
     } catch (_) {
@@ -94,13 +96,17 @@ class QanounyRepository {
       throw const QanounyRepositoryException('Selected document not found.');
     }
 
-    _validateFileExtension(sanitizedPath);
+    final metadata = _validateFileExtension(sanitizedPath);
     await _validateFileSize(file);
 
     try {
       final payload =
           await _apiService.sendFileQuery(sanitizedPath, sanitizedQuestion);
-      return FileQueryResponse.fromJson(payload);
+      return FileQueryResponse.fromJson(
+        payload,
+        uploadedFileName: metadata.fileName,
+        uploadType: metadata.type,
+      );
     } on QanounyApiException catch (error) {
       throw QanounyRepositoryException(error.message);
     } catch (_) {
@@ -110,20 +116,31 @@ class QanounyRepository {
     }
   }
 
-  Future<ResetResponse> resetConversation() async {
+  Future<InitChatResponse> initializeChat(String name, String gender) async {
+    final sanitizedName = name.trim();
+    final sanitizedGender = gender.trim();
+    if (sanitizedName.isEmpty || sanitizedGender.isEmpty) {
+      throw const QanounyRepositoryException(
+        'Name and gender are required to start a new chat.',
+      );
+    }
+
     try {
-      final payload = await _apiService.resetConversation();
-      return ResetResponse.fromJson(payload);
+      final payload = await _apiService.initializeChat(
+        name: sanitizedName,
+        gender: sanitizedGender,
+      );
+      return InitChatResponse.fromJson(payload);
     } on QanounyApiException catch (error) {
       throw QanounyRepositoryException(error.message);
     } catch (_) {
       throw const QanounyRepositoryException(
-        'Reset failed. Please try again in a moment.',
+        'Unable to reset the conversation right now. Please retry.',
       );
     }
   }
 
-  void _validateFileExtension(String path) {
+  FileUploadMetadata _validateFileExtension(String path) {
     const allowedExtensions = ['png', 'jpg', 'jpeg', 'pdf'];
     final extension = path.split('.').last.toLowerCase();
     if (!allowedExtensions.contains(extension)) {
@@ -131,6 +148,10 @@ class QanounyRepository {
         'Only PNG, JPG, JPEG, or PDF files are supported.',
       );
     }
+    final fileName = path.split(Platform.pathSeparator).last;
+    final type =
+        extension == 'pdf' ? FileUploadType.pdf : FileUploadType.image;
+    return FileUploadMetadata(fileName: fileName, type: type);
   }
 
   Future<void> _validateFileSize(File file) async {
@@ -141,6 +162,26 @@ class QanounyRepository {
         'File exceeds the 5MB size limit. Please pick a smaller document.',
       );
     }
+  }
+
+  Map<String, dynamic> _normalizeAudioResponse(
+    Map<String, dynamic> payload,
+  ) {
+    final normalized = Map<String, dynamic>.from(payload);
+    const candidateKeys = [
+      'audio',
+      'audio_result',
+      'audio_response',
+      'data',
+      'payload',
+    ];
+    for (final key in candidateKeys) {
+      final nested = payload[key];
+      if (nested is Map<String, dynamic>) {
+        normalized.addAll(nested);
+      }
+    }
+    return normalized;
   }
 }
 

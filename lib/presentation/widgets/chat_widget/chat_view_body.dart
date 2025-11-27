@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:legal_assistant_app/core/utils/app_styles.dart';
 import 'package:legal_assistant_app/data/models/audio_query_response.dart';
 import 'package:legal_assistant_app/data/models/file_query_response.dart';
+import 'package:legal_assistant_app/data/models/legal_source.dart';
 import 'package:legal_assistant_app/data/models/text_query_response.dart';
 import 'package:legal_assistant_app/logic/cubit/audio_query_cubit.dart';
 import 'package:legal_assistant_app/logic/cubit/file_query_cubit.dart';
@@ -99,7 +100,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
                   children: [
                     ContainerChat(icon: CupertinoIcons.back),
                     GestureDetector(
-                      onTap: _resetConversation,
+                      onTap: _initializeChatSession,
                       child: Container(
                         width: media.width * .3,
                         height: media.height * .05,
@@ -347,14 +348,21 @@ class _ChatViewBodyState extends State<ChatViewBody> {
 
   Future<void> _pickAudioFile() async {
     final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const ['wav'],
+      type: FileType.audio,
+      allowMultiple: false,
     );
     final file = result?.files.single;
-    if (file?.path == null) return;
+    final path = file?.path;
+    if (path == null) return;
     if (!mounted) return;
+
+    if (!path.toLowerCase().endsWith('.wav')) {
+      _setError('Audio queries currently accept WAV files only.');
+      return;
+    }
+
     _clearError();
-    context.read<AudioQueryCubit>().sendAudioQuery(file!.path!);
+    context.read<AudioQueryCubit>().sendAudioQuery(path);
   }
 
   Future<void> _openAttachmentSheet() async {
@@ -397,9 +405,14 @@ class _ChatViewBodyState extends State<ChatViewBody> {
     context.read<FileQueryCubit>().sendFileQuery(file!.path!, question);
   }
 
-  Future<void> _resetConversation() async {
+  Future<void> _initializeChatSession() async {
+    final initPayload = await _showChatInitDialog();
+    if (!mounted || initPayload == null) return;
     final cubit = context.read<TextQueryCubit>();
-    final response = await cubit.resetConversation();
+    final response = await cubit.initializeChat(
+      name: initPayload.name,
+      gender: initPayload.gender,
+    );
     if (!mounted) return;
     if (response != null && response.success) {
       setState(() {
@@ -418,12 +431,83 @@ class _ChatViewBodyState extends State<ChatViewBody> {
         SnackBar(
           content: Text(
             response.message.isEmpty
-                ? 'Conversation reset successfully.'
+                ? 'Conversation history reset successfully.'
                 : response.message,
           ),
         ),
       );
     }
+  }
+
+  Future<_ChatInitPayload?> _showChatInitDialog() async {
+    final nameController = TextEditingController();
+    final genderController = TextEditingController();
+    String? errorText;
+
+    final result = await showDialog<_ChatInitPayload>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: const Text('Start a new chat'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Name',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: genderController,
+                    decoration: const InputDecoration(
+                      labelText: 'Gender',
+                    ),
+                  ),
+                  if (errorText != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      errorText!,
+                      style: const TextStyle(color: Colors.redAccent),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    final name = nameController.text.trim();
+                    final gender = genderController.text.trim();
+                    if (name.isEmpty || gender.isEmpty) {
+                      setState(
+                        () => errorText =
+                            'Please provide both your name and gender.',
+                      );
+                      return;
+                    }
+                    Navigator.of(context)
+                        .pop(_ChatInitPayload(name: name, gender: gender));
+                  },
+                  child: const Text('Start'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    nameController.dispose();
+    genderController.dispose();
+    return result;
   }
 
   void _addUserMessage(String text, {MessageKind kind = MessageKind.text}) {
@@ -444,17 +528,23 @@ class _ChatViewBodyState extends State<ChatViewBody> {
       content: response.answer,
       kind: MessageKind.text,
       riskLevel: response.riskLevel,
-      sources: response.sources,
+      citedSources: response.citedSources,
+      termsSummary: response.termsSummary,
     );
   }
 
   void _addAudioConversation(AudioQueryResponse response) {
-    _addUserMessage(response.query, kind: MessageKind.audio);
+    final userQuestion = (response.transcript != null &&
+            response.transcript!.trim().isNotEmpty)
+        ? response.transcript!
+        : response.query;
+    _addUserMessage(userQuestion, kind: MessageKind.audio);
     _addAssistantMessage(
       content: response.answer,
       kind: MessageKind.audio,
       riskLevel: response.riskLevel,
-      sources: response.sources,
+      citedSources: response.citedSources,
+      termsSummary: response.termsSummary,
     );
   }
 
@@ -463,8 +553,9 @@ class _ChatViewBodyState extends State<ChatViewBody> {
       content: response.answer,
       kind: MessageKind.file,
       riskLevel: response.riskLevel,
-      sources: response.sources,
       fullText: response.fullText,
+      citedSources: response.citedSources,
+      termsSummary: response.termsSummary,
     );
   }
 
@@ -472,7 +563,8 @@ class _ChatViewBodyState extends State<ChatViewBody> {
     required String content,
     required MessageKind kind,
     String? riskLevel,
-    List<String>? sources,
+    List<CitedSource>? citedSources,
+    List<String>? termsSummary,
     String? fullText,
   }) {
     setState(() {
@@ -482,7 +574,8 @@ class _ChatViewBodyState extends State<ChatViewBody> {
           content: content,
           kind: kind,
           riskLevel: riskLevel,
-          sources: sources ?? const [],
+          citedSources: citedSources ?? const [],
+          termsSummary: termsSummary ?? const [],
           fullText: fullText,
         ),
       );
@@ -515,4 +608,11 @@ class _ChatViewBodyState extends State<ChatViewBody> {
       });
     }
   }
+}
+
+class _ChatInitPayload {
+  const _ChatInitPayload({required this.name, required this.gender});
+
+  final String name;
+  final String gender;
 }

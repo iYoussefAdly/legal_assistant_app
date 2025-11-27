@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:legal_assistant_app/data/models/reset_response.dart';
+import 'package:legal_assistant_app/data/models/init_chat_response.dart';
 import 'package:legal_assistant_app/data/repository/qanouny_repository.dart';
 import 'package:legal_assistant_app/logic/states/text_query_state.dart';
 
@@ -18,10 +18,13 @@ class TextQueryCubit extends Cubit<TextQueryState> {
     }
   }
 
-  Future<ResetResponse?> resetConversation() async {
+  Future<InitChatResponse?> initializeChat({
+    required String name,
+    required String gender,
+  }) async {
     emit(const TextQueryLoading());
     try {
-      final response = await _repository.resetConversation();
+      final response = await _repository.initializeChat(name, gender);
       emit(const TextQueryInitial());
       return response;
     } catch (error) {

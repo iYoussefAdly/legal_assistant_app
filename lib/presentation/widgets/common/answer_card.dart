@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:legal_assistant_app/core/utils/app_styles.dart';
+import 'package:legal_assistant_app/data/models/legal_source.dart';
 import 'package:legal_assistant_app/presentation/widgets/chat_widget/chat_message.dart';
 
 class AnswerCard extends StatelessWidget {
@@ -68,25 +70,12 @@ class AnswerCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Text(
-                      'Qanouny Assistant',
-                      style: AppStyles.styleSemitBold14,
-                    ),
-                    const SizedBox(width: 8),
-                    _RiskChip(riskLevel: message.riskLevel),
-                    const SizedBox(width: 8),
-                    _KindChip(kind: message.kind),
-                  ],
+                _HeaderMeta(
+                  riskLevel: message.riskLevel,
+                  kind: message.kind,
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  message.content,
-                  style: AppStyles.styleRegular16.copyWith(
-                    height: 1.4,
-                  ),
-                ),
+                _MarkdownContent(text: message.content),
                 if (message.fullText?.isNotEmpty ?? false) ...[
                   const SizedBox(height: 10),
                   Text(
@@ -99,30 +88,50 @@ class AnswerCard extends StatelessWidget {
                     style: AppStyles.styleRegular14.copyWith(height: 1.4),
                   ),
                 ],
-                if (message.sources.isNotEmpty) ...[
+                if (message.citedSources.isNotEmpty) ...[
                   const SizedBox(height: 12),
                   Text(
-                    'Sources',
+                    'Cited Sources',
                     style: AppStyles.styleSemitBold14,
                   ),
                   const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 6,
-                    children: message.sources
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: message.citedSources
                         .map(
-                          (source) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.35),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              source,
-                              style: AppStyles.styleRegular14,
+                          (cited) => Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: _CitedSourceTile(source: cited),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+                if (message.termsSummary.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    'Key terms',
+                    style: AppStyles.styleSemitBold14,
+                  ),
+                  const SizedBox(height: 6),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: message.termsSummary
+                        .map(
+                          (term) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text('• ',
+                                    style: AppStyles.styleRegular14),
+                                Expanded(
+                                  child: Text(
+                                    term,
+                                    style: AppStyles.styleRegular14,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         )
@@ -130,6 +139,58 @@ class AnswerCard extends StatelessWidget {
                   ),
                 ],
               ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+}
+
+class _HeaderMeta extends StatelessWidget {
+  const _HeaderMeta({
+    required this.riskLevel,
+    required this.kind,
+  });
+
+  final String? riskLevel;
+  final MessageKind kind;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final chips = <Widget>[
+      if (riskLevel != null && riskLevel!.isNotEmpty)
+        FittedBox(
+          child: _RiskChip(riskLevel: riskLevel),
+        ),
+      FittedBox(
+        child: _KindChip(kind: kind),
+      ),
+    ];
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text(
+            'Qanouny Assistant',
+            style: AppStyles.styleSemitBold14.copyWith(
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Align(
+            alignment: AlignmentDirectional.topEnd,
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              alignment: WrapAlignment.end,
+              children: chips,
             ),
           ),
         ),
@@ -200,6 +261,85 @@ class _KindChip extends StatelessWidget {
         style: AppStyles.styleRegular12,
       ),
     );
+  }
+}
+
+class _CitedSourceTile extends StatelessWidget {
+  const _CitedSourceTile({required this.source});
+
+  final CitedSource source;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (source.category?.isNotEmpty ?? false)
+            Text(
+              source.category!,
+              style: AppStyles.styleSemitBold14,
+            ),
+          const SizedBox(height: 4),
+          _MarkdownContent(text: source.text),
+        ],
+      ),
+    );
+  }
+}
+
+class _MarkdownContent extends StatelessWidget {
+  const _MarkdownContent({required this.text});
+
+  final String text;
+  static final _rtlPattern = RegExp(r'[\u0600-\u06FF]');
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.onSurface;
+    final direction = _detectDirection(text);
+
+    return SizedBox(
+      width: double.infinity,
+      child: Directionality(
+        textDirection: direction,
+        child: MarkdownBody(
+          data: text,
+          shrinkWrap: true,
+          selectable: false,
+          softLineBreak: true,
+          styleSheet: MarkdownStyleSheet.fromTheme(theme).copyWith(
+            p: AppStyles.styleRegular16.copyWith(
+              color: color,
+              height: 1.5,
+            ),
+            h1: AppStyles.styleSemitBold16.copyWith(color: color),
+            h2: AppStyles.styleSemitBold14.copyWith(fontSize: 15, color: color),
+            h3: AppStyles.styleSemitBold14.copyWith(color: color),
+            strong: AppStyles.styleRegular16.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
+            listBullet: AppStyles.styleRegular16.copyWith(color: color),
+            blockquote: AppStyles.styleRegular16.copyWith(
+              color: color.withValues(alpha: 0.9),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static TextDirection _detectDirection(String value) {
+    if (value.isEmpty) return TextDirection.ltr;
+    return _rtlPattern.hasMatch(value) ? TextDirection.rtl : TextDirection.ltr;
   }
 }
 
