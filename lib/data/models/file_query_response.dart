@@ -11,7 +11,7 @@ class FileQueryResponse extends Equatable {
     required this.riskLevel,
     required this.sources,
     required this.citedSources,
-    required this.termsSummary,
+    this.termSummary,
     this.uploadedFileName,
     this.uploadType,
   });
@@ -23,7 +23,7 @@ class FileQueryResponse extends Equatable {
   final String riskLevel;
   final List<SourceReference> sources;
   final List<CitedSource> citedSources;
-  final List<String> termsSummary;
+  final String? termSummary;
   final String? uploadedFileName;
   final FileUploadType? uploadType;
 
@@ -40,20 +40,32 @@ class FileQueryResponse extends Equatable {
       riskLevel: json['risk_level']?.toString() ?? '',
       sources: SourceReference.listFromJson(json['sources']),
       citedSources: CitedSource.listFromJson(json['cited_sources']),
-      termsSummary: _parseTermsSummary(json['terms_summary']),
+      termSummary: _parseTermSummary(json),
       uploadedFileName: uploadedFileName,
       uploadType: uploadType,
     );
   }
 
-  static List<String> _parseTermsSummary(dynamic value) {
-    if (value is List) {
-      return value.map((item) => item.toString()).toList();
+  static String? _parseTermSummary(Map<String, dynamic> json) {
+    String? parseValue(dynamic value) {
+      if (value is String) {
+        final trimmed = value.trim();
+        return trimmed.isEmpty ? null : trimmed;
+      }
+      if (value is List) {
+        final entries = value
+            .map((item) => item.toString().trim())
+            .where((item) => item.isNotEmpty)
+            .toList();
+        if (entries.isNotEmpty) {
+          return entries.join('\n\n');
+        }
+      }
+      return null;
     }
-    if (value is String && value.isNotEmpty) {
-      return [value];
-    }
-    return const [];
+
+    return parseValue(json['term_summary']) ??
+        parseValue(json['terms_summary']);
   }
 
   @override
@@ -65,7 +77,7 @@ class FileQueryResponse extends Equatable {
         riskLevel,
         sources,
         citedSources,
-        termsSummary,
+        termSummary,
         uploadedFileName,
         uploadType,
       ];

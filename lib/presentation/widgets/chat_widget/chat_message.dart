@@ -12,7 +12,7 @@ class ChatMessage extends Equatable {
     this.kind = MessageKind.text,
     this.riskLevel,
     this.citedSources = const [],
-    this.termsSummary = const [],
+    this.termSummary,
     this.fullText,
   });
 
@@ -21,13 +21,13 @@ class ChatMessage extends Equatable {
   final String content;
   final String? riskLevel;
   final List<CitedSource> citedSources;
-  final List<String> termsSummary;
+  final String? termSummary;
   final String? fullText;
 
   bool get hasMetadata =>
       (riskLevel?.isNotEmpty ?? false) ||
       citedSources.isNotEmpty ||
-      termsSummary.isNotEmpty ||
+      (termSummary?.isNotEmpty ?? false) ||
       (fullText?.isNotEmpty ?? false);
 
   @override
@@ -37,7 +37,7 @@ class ChatMessage extends Equatable {
         content,
         riskLevel,
         citedSources,
-        termsSummary,
+        termSummary,
         fullText,
       ];
 }

@@ -13,8 +13,9 @@ class QanounyApiService {
             Dio(
               BaseOptions(
                 baseUrl: _baseUrl,
-                connectTimeout: const Duration(seconds: 15),
-                receiveTimeout: const Duration(seconds: 20),
+                connectTimeout: const Duration(minutes: 5),
+                receiveTimeout: const Duration(minutes: 5),
+                sendTimeout: const Duration(minutes: 5),
                 responseType: ResponseType.json,
               ),
             ) {
@@ -99,6 +100,7 @@ class QanounyApiService {
       () => _dio.post(
         '/api/query/file',
         data: formData,
+        
       ),
       endpoint: '/api/query/file',
     );

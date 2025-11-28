@@ -88,55 +88,13 @@ class AnswerCard extends StatelessWidget {
                     style: AppStyles.styleRegular14.copyWith(height: 1.4),
                   ),
                 ],
+                if (message.termSummary?.isNotEmpty ?? false) ...[
+                  const SizedBox(height: 12),
+                  TermSummaryWidget(summary: message.termSummary!),
+                ],
                 if (message.citedSources.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  Text(
-                    'Cited Sources',
-                    style: AppStyles.styleSemitBold14,
-                  ),
-                  const SizedBox(height: 6),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: message.citedSources
-                        .map(
-                          (cited) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: _CitedSourceTile(source: cited),
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ],
-                if (message.termsSummary.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    'Key terms',
-                    style: AppStyles.styleSemitBold14,
-                  ),
-                  const SizedBox(height: 6),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: message.termsSummary
-                        .map(
-                          (term) => Padding(
-                            padding: const EdgeInsets.only(bottom: 4),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('• ',
-                                    style: AppStyles.styleRegular14),
-                                Expanded(
-                                  child: Text(
-                                    term,
-                                    style: AppStyles.styleRegular14,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                        .toList(),
-                  ),
+                  CitedSourcesWidget(sources: message.citedSources),
                 ],
               ],
             ),
@@ -264,36 +222,6 @@ class _KindChip extends StatelessWidget {
   }
 }
 
-class _CitedSourceTile extends StatelessWidget {
-  const _CitedSourceTile({required this.source});
-
-  final CitedSource source;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.35),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (source.category?.isNotEmpty ?? false)
-            Text(
-              source.category!,
-              style: AppStyles.styleSemitBold14,
-            ),
-          const SizedBox(height: 4),
-          _MarkdownContent(text: source.text),
-        ],
-      ),
-    );
-  }
-}
-
 class _MarkdownContent extends StatelessWidget {
   const _MarkdownContent({required this.text});
 
@@ -340,6 +268,204 @@ class _MarkdownContent extends StatelessWidget {
   static TextDirection _detectDirection(String value) {
     if (value.isEmpty) return TextDirection.ltr;
     return _rtlPattern.hasMatch(value) ? TextDirection.rtl : TextDirection.ltr;
+  }
+}
+
+class TermSummaryWidget extends StatefulWidget {
+  const TermSummaryWidget({super.key, required this.summary});
+
+  final String summary;
+
+  @override
+  State<TermSummaryWidget> createState() => _TermSummaryWidgetState();
+}
+
+class _TermSummaryWidgetState extends State<TermSummaryWidget> {
+  bool _expanded = false;
+
+  void _toggle() => setState(() => _expanded = !_expanded);
+
+  @override
+  Widget build(BuildContext context) {
+    return _ExpandableSection(
+      label: 'Term Summary',
+      expanded: _expanded,
+      onPressed: _toggle,
+      child: _ScrollableCard(
+        child: _MarkdownContent(text: widget.summary),
+      ),
+    );
+  }
+}
+
+class CitedSourcesWidget extends StatefulWidget {
+  const CitedSourcesWidget({super.key, required this.sources});
+
+  final List<CitedSource> sources;
+
+  @override
+  State<CitedSourcesWidget> createState() => _CitedSourcesWidgetState();
+}
+
+class _CitedSourcesWidgetState extends State<CitedSourcesWidget> {
+  bool _expanded = false;
+
+  void _toggle() => setState(() => _expanded = !_expanded);
+
+  @override
+  Widget build(BuildContext context) {
+    return _ExpandableSection(
+      label: 'Cited Sources',
+      expanded: _expanded,
+      onPressed: _toggle,
+      child: _ScrollableCard(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (final source in widget.sources) ...[
+              _CitedSourceTile(source: source),
+              if (source != widget.sources.last) const SizedBox(height: 10),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ExpandableSection extends StatelessWidget {
+  const _ExpandableSection({
+    required this.label,
+    required this.expanded,
+    required this.onPressed,
+    required this.child,
+  });
+
+  final String label;
+  final bool expanded;
+  final VoidCallback onPressed;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final fgColor = theme.colorScheme.onSurface;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 48,
+          child: OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              backgroundColor: theme.colorScheme.surface.withValues(alpha: 0.35),
+              foregroundColor: fgColor,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+              side: BorderSide(
+                color: Colors.white.withValues(alpha: 0.5),
+              ),
+            ),
+            onPressed: onPressed,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: AppStyles.styleSemitBold14.copyWith(color: fgColor),
+                  ),
+                ),
+                Icon(
+                  expanded ? Icons.expand_less : Icons.expand_more,
+                  color: fgColor,
+                ),
+              ],
+            ),
+          ),
+        ),
+        AnimatedCrossFade(
+          firstChild: const SizedBox.shrink(),
+          secondChild: Padding(
+            padding: const EdgeInsets.only(top: 10),
+            child: child,
+          ),
+          crossFadeState:
+              expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 250),
+          sizeCurve: Curves.easeInOut,
+        ),
+      ],
+    );
+  }
+}
+
+class _ScrollableCard extends StatelessWidget {
+  const _ScrollableCard({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 260),
+        child: Scrollbar(
+          thumbVisibility: false,
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CitedSourceTile extends StatelessWidget {
+  const _CitedSourceTile({required this.source});
+
+  final CitedSource source;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (source.category?.isNotEmpty ?? false)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                source.category!,
+                style: AppStyles.styleSemitBold14,
+              ),
+            ),
+          _MarkdownContent(text: source.text),
+        ],
+      ),
+    );
   }
 }
 

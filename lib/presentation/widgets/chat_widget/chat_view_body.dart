@@ -112,8 +112,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('New Chat',
-                                style: AppStyles.styleSemitBold14),
+                            Text('New Chat', style: AppStyles.styleSemitBold14),
                             SizedBox(width: media.width * .02),
                             const Icon(Icons.restart_alt, size: 24),
                           ],
@@ -314,35 +313,20 @@ class _ChatViewBodyState extends State<ChatViewBody> {
   }
 
   Future<void> _sendTextQuestion() async {
-    // Get the text from controller
     final rawText = _questionController.text;
-    
-    // Trim and validate
     final question = rawText.trim();
-    
-    // Check if question is empty after trimming
+
     if (question.isEmpty) {
       _setError('Please type a legal question before sending.');
       _questionFocusNode.requestFocus();
       return;
     }
-    
-    // Clear any previous errors
+
     _clearError();
-    
-    // Store question before clearing controller
     final questionToSend = question;
-    
-    // Clear the controller
     _questionController.clear();
-    
-    // Unfocus the text field
     _questionFocusNode.unfocus();
-    
-    // Add user message to chat
     _addUserMessage(questionToSend);
-    
-    // Send the query
     context.read<TextQueryCubit>().sendTextQuery(questionToSend);
   }
 
@@ -529,7 +513,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
       kind: MessageKind.text,
       riskLevel: response.riskLevel,
       citedSources: response.citedSources,
-      termsSummary: response.termsSummary,
+      termSummary: response.termSummary,
     );
   }
 
@@ -544,7 +528,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
       kind: MessageKind.audio,
       riskLevel: response.riskLevel,
       citedSources: response.citedSources,
-      termsSummary: response.termsSummary,
+      termSummary: response.termSummary,
     );
   }
 
@@ -555,7 +539,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
       riskLevel: response.riskLevel,
       fullText: response.fullText,
       citedSources: response.citedSources,
-      termsSummary: response.termsSummary,
+      termSummary: response.termSummary,
     );
   }
 
@@ -564,7 +548,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
     required MessageKind kind,
     String? riskLevel,
     List<CitedSource>? citedSources,
-    List<String>? termsSummary,
+    String? termSummary,
     String? fullText,
   }) {
     setState(() {
@@ -575,7 +559,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
           kind: kind,
           riskLevel: riskLevel,
           citedSources: citedSources ?? const [],
-          termsSummary: termsSummary ?? const [],
+          termSummary: termSummary,
           fullText: fullText,
         ),
       );
@@ -598,7 +582,6 @@ class _ChatViewBodyState extends State<ChatViewBody> {
     setState(() {
       _errorMessage = message;
     });
-    // Error is already displayed in the ErrorMessage widget, no need for snackbar
   }
 
   void _clearError() {
@@ -616,3 +599,4 @@ class _ChatInitPayload {
   final String name;
   final String gender;
 }
+
