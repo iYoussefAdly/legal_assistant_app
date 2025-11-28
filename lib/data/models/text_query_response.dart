@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:legal_assistant_app/data/models/legal_source.dart';
 
 class TextQueryResponse extends Equatable {
   const TextQueryResponse({
@@ -7,13 +8,17 @@ class TextQueryResponse extends Equatable {
     required this.answer,
     required this.riskLevel,
     required this.sources,
+    required this.citedSources,
+    this.termSummary,
   });
 
   final bool success;
   final String query;
   final String answer;
   final String riskLevel;
-  final List<String> sources;
+  final List<SourceReference> sources;
+  final List<CitedSource> citedSources;
+  final String? termSummary;
 
   factory TextQueryResponse.fromJson(Map<String, dynamic> json) {
     return TextQueryResponse(
@@ -21,29 +26,43 @@ class TextQueryResponse extends Equatable {
       query: json['query']?.toString() ?? '',
       answer: json['answer']?.toString() ?? '',
       riskLevel: json['risk_level']?.toString() ?? '',
-      sources: _parseSources(json['sources']),
+      sources: SourceReference.listFromJson(json['sources']),
+      citedSources: CitedSource.listFromJson(json['cited_sources']),
+      termSummary: _parseTermSummary(json),
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'success': success,
-      'query': query,
-      'answer': answer,
-      'risk_level': riskLevel,
-      'sources': sources,
-    };
-  }
-
-  static List<String> _parseSources(dynamic value) {
-    if (value is List) {
-      return value.map((item) => item.toString()).toList();
+  static String? _parseTermSummary(Map<String, dynamic> json) {
+    String? parseValue(dynamic value) {
+      if (value is String) {
+        final trimmed = value.trim();
+        return trimmed.isEmpty ? null : trimmed;
+      }
+      if (value is List) {
+        final entries = value
+            .map((item) => item.toString().trim())
+            .where((item) => item.isNotEmpty)
+            .toList();
+        if (entries.isNotEmpty) {
+          return entries.join('\n\n');
+        }
+      }
+      return null;
     }
-    return const [];
+
+    return parseValue(json['term_summary']) ??
+        parseValue(json['terms_summary']);
   }
 
   @override
-  List<Object?> get props => [success, query, answer, riskLevel, sources];
+  List<Object?> get props => [
+        success,
+        query,
+        answer,
+        riskLevel,
+        sources,
+        citedSources,
+        termSummary,
+      ];
 }
-
 

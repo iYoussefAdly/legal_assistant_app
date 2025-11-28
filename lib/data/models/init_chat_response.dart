@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
-class ResetResponse extends Equatable {
-  const ResetResponse({
+class InitChatResponse extends Equatable {
+  const InitChatResponse({
     required this.success,
     required this.message,
   });
@@ -9,18 +9,11 @@ class ResetResponse extends Equatable {
   final bool success;
   final String message;
 
-  factory ResetResponse.fromJson(Map<String, dynamic> json) {
-    return ResetResponse(
+  factory InitChatResponse.fromJson(Map<String, dynamic> json) {
+    return InitChatResponse(
       success: json['success'] as bool? ?? false,
       message: json['message']?.toString() ?? '',
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'success': success,
-      'message': message,
-    };
   }
 
   @override

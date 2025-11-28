@@ -1,8 +1,10 @@
-import 'dart:convert';
+import 'dart:developer' as developer;
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:legal_assistant_app/data/api/api_exception.dart';
+import 'package:mime/mime.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 class QanounyApiService {
@@ -11,8 +13,9 @@ class QanounyApiService {
             Dio(
               BaseOptions(
                 baseUrl: _baseUrl,
-                connectTimeout: const Duration(seconds: 15),
-                receiveTimeout: const Duration(seconds: 20),
+                connectTimeout: const Duration(minutes: 5),
+                receiveTimeout: const Duration(minutes: 5),
+                sendTimeout: const Duration(minutes: 5),
                 responseType: ResponseType.json,
               ),
             ) {
@@ -36,7 +39,6 @@ class QanounyApiService {
   final Dio _dio;
 
   Future<Map<String, dynamic>> sendTextQuery(String question) async {
-    // Validate question is not empty
     final trimmedQuestion = question.trim();
     if (trimmedQuestion.isEmpty) {
       throw const QanounyApiException(
@@ -44,73 +46,123 @@ class QanounyApiService {
       );
     }
 
-    try {
-      // Backend expects url-encoded form data
-      final response = await _dio.post(
-        '/api/query/text',
-        data: {
-          'question': trimmedQuestion,
-        },
-        options: Options(
-          contentType: Headers.formUrlEncodedContentType,
-          headers: {
-            'accept': 'application/json',
-          },
-        ),
-      );
+    // Use FormData as per new API documentation
+    final formData = FormData.fromMap({
+      'question': trimmedQuestion,
+    });
 
-      return _asMap(response.data);
-    } on DioException catch (error) {
-      throw QanounyApiException(_resolveDioMessage(error));
-    } catch (e) {
-      if (e is QanounyApiException) {
-        rethrow;
-      }
-      throw QanounyApiException('Failed to send question: ${e.toString()}');
-    }
+    _logFormData('/api/query/text', formData);
+    return _execute(
+      () => _dio.post(
+        '/api/query/text',
+        data: formData,
+      ),
+      endpoint: '/api/query/text',
+    );
   }
 
   Future<Map<String, dynamic>> sendAudioQuery(String filePath) async {
     final fileName = filePath.split(Platform.pathSeparator).last;
     final formData = FormData.fromMap({
-      'audio_file': await MultipartFile.fromFile(
-        filePath,
-        filename: fileName,
-      ),
+      'audio_file': await _multipartFromFile(filePath, fileName),
     });
+
+    _logFormData('/api/query/audio', formData);
     return _execute(
-      () => _dio.post('/api/query/audio', data: formData),
+      () => _dio.post(
+        '/api/query/audio',
+        data: formData,
+      ),
+      endpoint: '/api/query/audio',
     );
   }
+
   Future<Map<String, dynamic>> sendFileQuery(
     String filePath,
     String question,
   ) async {
-    final fileName = filePath.split(Platform.pathSeparator).last;
+    final trimmedQuestion = question.trim();
+    if (trimmedQuestion.isEmpty) {
+      throw const QanounyApiException(
+        'Please provide a question related to the uploaded document.',
+      );
+    }
     final formData = FormData.fromMap({
-      'file': await MultipartFile.fromFile(
+      'file': await _multipartFromFile(
         filePath,
-        filename: fileName,
+        filePath.split(Platform.pathSeparator).last,
       ),
-      'question': question,
+      'question': trimmedQuestion,
     });
+
+    _logFormData('/api/query/file', formData);
     return _execute(
-      () => _dio.post('/api/query/file', data: formData),
+      () => _dio.post(
+        '/api/query/file',
+        data: formData,
+        
+      ),
+      endpoint: '/api/query/file',
     );
   }
 
-  Future<Map<String, dynamic>> resetConversation() async {
-    return _execute(() => _dio.post('/api/reset'));
+  Future<Map<String, dynamic>> initializeChat({
+    required String name,
+    required String gender,
+  }) async {
+    final trimmedName = name.trim();
+    final trimmedGender = gender.trim();
+    if (trimmedName.isEmpty || trimmedGender.isEmpty) {
+      throw const QanounyApiException(
+        'Name and gender are required to initialize the chat.',
+      );
+    }
+
+    // Use FormData as per new API documentation
+    final formData = FormData.fromMap({
+      'name': trimmedName,
+      'gender': trimmedGender,
+    });
+
+    _logFormData('/api/init', formData);
+    return _execute(
+      () => _dio.post(
+        '/api/init',
+        data: formData,
+      ),
+      endpoint: '/api/init',
+    );
+  }
+
+  Future<Map<String, dynamic>> healthCheck() async {
+    return _execute(
+      () => _dio.get('/'),
+      endpoint: '/',
+    );
   }
 
   Future<Map<String, dynamic>> _execute(
-    Future<Response<dynamic>> Function() request,
-  ) async {
+    Future<Response<dynamic>> Function() request, {
+    required String endpoint,
+  }) async {
     try {
       final response = await request();
-      return _asMap(response.data);
+      _logResponse(endpoint, response);
+      final data = _asMap(response.data);
+      
+      // Check if the response indicates an error (success: false with error_message)
+      if (data.containsKey('success') && data['success'] == false) {
+        final errorMessage = data['error_message']?.toString() ?? 
+            'An error occurred while processing your request.';
+        throw QanounyApiException(errorMessage);
+      }
+      
+      return data;
     } on DioException catch (error) {
+      _logDioError(endpoint, error);
       throw QanounyApiException(_resolveDioMessage(error));
+    } on QanounyApiException {
+      rethrow;
     } catch (_) {
       throw const QanounyApiException(
         'Unexpected error occurred. Please try again later.',
@@ -199,6 +251,130 @@ class QanounyApiService {
       return error.message!;
     }
     return 'Request failed. Please try again.';
+  }
+
+  Future<MultipartFile> _multipartFromFile(
+    String filePath,
+    String fileName,
+  ) async {
+    final mediaType = _resolveMediaType(filePath);
+    return MultipartFile.fromFile(
+      filePath,
+      filename: fileName,
+      contentType: mediaType,
+    );
+  }
+
+  MediaType? _resolveMediaType(String filePath) {
+    final lowerPath = filePath.toLowerCase();
+    if (lowerPath.endsWith('.wav')) {
+      return MediaType('audio', 'wav');
+    }
+
+    final mimeType = lookupMimeType(filePath);
+    if (mimeType == null) return null;
+    final parts = mimeType.split('/');
+    if (parts.length != 2) return null;
+    var type = parts.first;
+    var subType = parts.last;
+
+    if (subType == 'x-wav') {
+      subType = 'wav';
+    }
+
+    return MediaType(type, subType);
+  }
+
+  void _logFormData(String endpoint, FormData formData) {
+    final buffer = StringBuffer()
+      ..writeln('[$endpoint] Sending multipart request')
+      ..writeln('Fields:');
+    if (formData.fields.isEmpty) {
+      buffer.writeln('  (none)');
+    } else {
+      for (final field in formData.fields) {
+        buffer.writeln('  ${field.key}: ${field.value}');
+      }
+    }
+    buffer.writeln('Files:');
+    if (formData.files.isEmpty) {
+      buffer.writeln('  (none)');
+    } else {
+      for (final fileEntry in formData.files) {
+        final file = fileEntry.value;
+        final contentType = file.contentType;
+        buffer.writeln(
+          '  ${fileEntry.key}: ${file.filename} '
+          '(${file.length ?? 'unknown'} bytes, '
+          '${contentType != null ? '${contentType.type}/${contentType.subtype}' : 'content-type: auto'})',
+        );
+      }
+    }
+    _recordLog(buffer.toString());
+  }
+
+  void _logResponse(String endpoint, Response<dynamic> response) {
+    final requestHeaders = response.requestOptions.headers;
+    final responseHeaders = response.headers.map;
+    final buffer = StringBuffer()
+      ..writeln('[$endpoint] Request headers: ${_formatHeaders(requestHeaders)}')
+      ..writeln(
+        '[$endpoint] Response status: ${response.statusCode} '
+        '(${response.statusMessage ?? 'no-status-message'})',
+      )
+      ..writeln(
+        '[$endpoint] Response headers: ${_formatHeaders(responseHeaders)}',
+      )
+      ..writeln('[$endpoint] Response data: ${response.data}');
+    _recordLog(buffer.toString());
+  }
+
+  void _logDioError(String endpoint, DioException error) {
+    final requestHeaders = error.requestOptions.headers;
+    final buffer = StringBuffer()
+      ..writeln('[ERROR $endpoint] Request headers: ${_formatHeaders(requestHeaders)}')
+      ..writeln('[ERROR $endpoint] Message: ${error.message}');
+    final response = error.response;
+    if (response != null) {
+      buffer
+        ..writeln(
+          '[ERROR $endpoint] Response status: ${response.statusCode} '
+          '(${response.statusMessage ?? 'no-status-message'})',
+        )
+        ..writeln(
+          '[ERROR $endpoint] Response headers: ${_formatHeaders(response.headers.map)}',
+        )
+        ..writeln('[ERROR $endpoint] Response data: ${response.data}');
+    } else {
+      buffer.writeln('[ERROR $endpoint] No response body captured.');
+    }
+    _recordLog(buffer.toString(), error: error);
+  }
+
+  String _formatHeaders(Map<dynamic, dynamic> headers) {
+    if (headers.isEmpty) {
+      return '(none)';
+    }
+    return headers.entries
+        .map((entry) {
+          final key = entry.key.toString();
+          final value = entry.value;
+          if (value is List) {
+            return '$key: ${value.join('|')}';
+          }
+          return '$key: $value';
+        })
+        .join(', ');
+  }
+
+  void _recordLog(String message, {Object? error}) {
+    developer.log(
+      message,
+      name: 'QanounyApiService',
+      error: error,
+    );
+    // ignore: avoid_print
+    print('[QanounyApiService] $message');
   }
 }
 
