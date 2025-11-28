@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';   // ⬅️ مهم جدًا
 import 'package:legal_assistant_app/data/api/qanouny_api_service.dart';
 import 'package:legal_assistant_app/data/repository/qanouny_repository.dart';
 import 'package:legal_assistant_app/logic/cubit/audio_query_cubit.dart';
@@ -7,11 +8,17 @@ import 'package:legal_assistant_app/logic/cubit/file_query_cubit.dart';
 import 'package:legal_assistant_app/logic/cubit/text_query_cubit.dart';
 import 'package:legal_assistant_app/presentation/views/splash_view.dart';
 
-void main() {
+Future<void> main() async {
+  // ⬅️ لازم لتحميل .env قبل تشغيل التطبيق
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
+
   final apiService = QanounyApiService();
   final repository = QanounyRepository(apiService);
+
   runApp(LegalAssistantApp(repository: repository));
 }
+
 class LegalAssistantApp extends StatelessWidget {
   const LegalAssistantApp({super.key, required this.repository});
 
