@@ -9,7 +9,6 @@ import 'package:legal_assistant_app/logic/cubit/text_query_cubit.dart';
 import 'package:legal_assistant_app/presentation/views/splash_view.dart';
 
 Future<void> main() async {
-  // ⬅️ لازم لتحميل .env قبل تشغيل التطبيق
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
 
