@@ -1,4 +1,4 @@
-class user_data {
+class UserData {
   String? nationalId;
   String? fullName;
   String? email;
@@ -6,7 +6,7 @@ class user_data {
   String? gender;
   String? createdAt;
 
-  user_data({
+  UserData({
     this.nationalId,
     this.fullName,
     this.email,
@@ -15,7 +15,7 @@ class user_data {
     String? createdAt,
   }) : createdAt = createdAt ?? DateTime.now().toUtc().toIso8601String();
 
-  user_data.fromJson(Map<String, dynamic> json) {
+  UserData.fromJson(Map<String, dynamic> json) {
     nationalId = json['NationalId'];
     fullName = json['FullName'];
     email = json['Email'];

@@ -65,7 +65,6 @@ class SignInViewBody extends StatelessWidget {
                         ),
                         const SizedBox(height: 32),
 
-                        // 👇 رجعناها نص عادي بدون GestureDetector
                         Align(
                           alignment: AlignmentGeometry.centerRight,
                           child: Text(

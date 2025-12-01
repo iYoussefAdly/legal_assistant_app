@@ -61,15 +61,6 @@ class _ChatViewBodyState extends State<ChatViewBody> {
       ),
     );
   }
-
-  @override
-  void dispose() {
-    _questionController.dispose();
-    _scrollController.dispose();
-    _questionFocusNode.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context).size;
@@ -488,12 +479,8 @@ class _ChatViewBodyState extends State<ChatViewBody> {
         );
       },
     );
-
-    nameController.dispose();
-    genderController.dispose();
     return result;
   }
-
   void _addUserMessage(String text, {MessageKind kind = MessageKind.text}) {
     setState(() {
       _messages.add(
@@ -599,4 +586,5 @@ class _ChatInitPayload {
   final String name;
   final String gender;
 }
+
 
