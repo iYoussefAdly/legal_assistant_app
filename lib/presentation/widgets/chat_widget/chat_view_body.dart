@@ -479,12 +479,8 @@ class _ChatViewBodyState extends State<ChatViewBody> {
         );
       },
     );
-
-    nameController.dispose();
-    genderController.dispose();
     return result;
   }
-
   void _addUserMessage(String text, {MessageKind kind = MessageKind.text}) {
     setState(() {
       _messages.add(
