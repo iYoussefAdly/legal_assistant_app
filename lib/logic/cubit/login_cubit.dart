@@ -5,10 +5,8 @@ import '../states/login_state.dart';
 
 class LoginCubit extends Cubit<LoginState> {
   final QanounyApiService _apiService = QanounyApiService();
-
   LoginCubit() : super(LoginInitial());
-
-  final TextEditingController emailController = TextEditingController();
+  final TextEditingController nationalIdController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
 
@@ -17,7 +15,7 @@ class LoginCubit extends Cubit<LoginState> {
       emit(LoginLoading());
       try {
         await _apiService.login(
-          email: emailController.text.trim(),
+          nationalId: nationalIdController.text.trim(),
           password: passwordController.text.trim(),
         );
         emit(LoginSuccess());
@@ -29,7 +27,7 @@ class LoginCubit extends Cubit<LoginState> {
 
   @override
   Future<void> close() {
-    emailController.dispose();
+    nationalIdController.dispose();
     passwordController.dispose();
     return super.close();
   }

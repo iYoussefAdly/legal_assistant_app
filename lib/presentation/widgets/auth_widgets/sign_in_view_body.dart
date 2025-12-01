@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:legal_assistant_app/core/utils/app_styles.dart';
+import 'package:legal_assistant_app/core/utils/helpers/show_snack_bar.dart';
 import 'package:legal_assistant_app/presentation/views/chat_view.dart';
 import 'package:legal_assistant_app/presentation/views/sign_up_view.dart';
 import 'package:legal_assistant_app/presentation/widgets/auth_widgets/custom_button.dart';
@@ -11,7 +12,6 @@ import '../../../../logic/states/login_state.dart';
 
 class SignInViewBody extends StatelessWidget {
   const SignInViewBody({super.key});
-
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -19,22 +19,17 @@ class SignInViewBody extends StatelessWidget {
       child: BlocConsumer<LoginCubit, LoginState>(
         listener: (context, state) {
           if (state is LoginSuccess) {
-            Navigator.pushReplacement(
+            Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => const ChatView()),
             );
+            showSnackBar(context, "Login Successful. Welcome!");
           } else if (state is LoginFailure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.errorMessage),
-                backgroundColor: Colors.red,
-              ),
-            );
+            showSnackBar(context, state.errorMessage);
           }
         },
         builder: (context, state) {
           final cubit = context.read<LoginCubit>();
-
           return SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -48,23 +43,22 @@ class SignInViewBody extends StatelessWidget {
                       children: [
                         const AuthHeader(text: 'Sign in to continue'),
                         const SizedBox(height: 64),
-
                         CustomTextField(
-                          hintText: "enter your email",
+                          hintText: "enter your National ID",
                           isItPassword: false,
-                          controller: cubit.emailController,
-                          validator: (value) => value!.isEmpty ? 'Email is required' : null,
+                          controller: cubit.nationalIdController,
+                          validator: (value) =>
+                              value!.isEmpty ? 'National ID is required' : null,
                         ),
                         const SizedBox(height: 16),
-
                         CustomTextField(
                           hintText: "enter your password",
                           isItPassword: true,
                           controller: cubit.passwordController,
-                          validator: (value) => value!.isEmpty ? 'Password is required' : null,
+                          validator: (value) =>
+                              value!.isEmpty ? 'Password is required' : null,
                         ),
                         const SizedBox(height: 32),
-
                         Align(
                           alignment: AlignmentGeometry.centerRight,
                           child: Text(
@@ -75,34 +69,46 @@ class SignInViewBody extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 32),
-
                         Align(
                           alignment: AlignmentGeometry.center,
                           child: GestureDetector(
                             onTap: () => Navigator.pushReplacement(
                               context,
-                              MaterialPageRoute(builder: (context) => const SignUpView()),
+                              MaterialPageRoute(
+                                builder: (context) => const SignUpView(),
+                              ),
                             ),
                             child: RichText(
                               text: TextSpan(
                                 children: [
-                                  TextSpan(text: "Don't have an account? ", style: AppStyles.styleRegular18.copyWith(color: Colors.black)),
-                                  TextSpan(text: "Sign Up", style: AppStyles.styleRegular18.copyWith(color: const Color(0xffAF63E8))),
+                                  TextSpan(
+                                    text: "Don't have an account? ",
+                                    style: AppStyles.styleRegular18.copyWith(
+                                      color: Colors.black,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: "Sign Up",
+                                    style: AppStyles.styleRegular18.copyWith(
+                                      color: const Color(0xffAF63E8),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                           ),
                         ),
                         const SizedBox(height: 32),
-
                         Align(
                           alignment: Alignment.center,
                           child: state is LoginLoading
-                              ? const CircularProgressIndicator(color: Color(0xffAF63E8))
+                              ? const CircularProgressIndicator(
+                                  color: Color(0xffAF63E8),
+                                )
                               : CustomButton(
-                            buttonName: "Login",
-                            onTap: () => cubit.login(),
-                          ),
+                                  buttonName: "Login",
+                                  onTap: () => cubit.login(),
+                                ),
                         ),
                       ],
                     ),
