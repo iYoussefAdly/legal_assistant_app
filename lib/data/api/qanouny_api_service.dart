@@ -6,21 +6,22 @@ import 'package:http_parser/http_parser.dart';
 import 'package:legal_assistant_app/data/api/api_exception.dart';
 import 'package:mime/mime.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
+import 'api_endpoints.dart';
 
 class QanounyApiService {
   QanounyApiService({Dio? dio})
       : _dio = dio ??
-            Dio(
-              BaseOptions(
-                baseUrl: _baseUrl,
-                connectTimeout: const Duration(minutes: 5),
-                receiveTimeout: const Duration(minutes: 5),
-                sendTimeout: const Duration(minutes: 5),
-                responseType: ResponseType.json,
-              ),
-            ) {
+      Dio(
+        BaseOptions(
+          baseUrl: _baseUrl,
+          connectTimeout: const Duration(minutes: 5),
+          receiveTimeout: const Duration(minutes: 5),
+          sendTimeout: const Duration(minutes: 5),
+          responseType: ResponseType.json,
+        ),
+      ) {
     final hasLogger =
-        _dio.interceptors.any((element) => element is PrettyDioLogger);
+    _dio.interceptors.any((element) => element is PrettyDioLogger);
     if (!hasLogger) {
       _dio.interceptors.add(
         PrettyDioLogger(
@@ -38,6 +39,31 @@ class QanounyApiService {
 
   final Dio _dio;
 
+  Future<Map<String, dynamic>> login({
+    required String email,
+    required String password,
+  }) async {
+    final trimmedEmail = email.trim();
+    final trimmedPassword = password.trim();
+
+    if (trimmedEmail.isEmpty || trimmedPassword.isEmpty) {
+      throw const QanounyApiException(
+        'Email and password are required.',
+      );
+    }
+
+    return _execute(
+          () => _dio.post(
+        ApiEndpoints.loginUrl,
+        data: {
+          'email': trimmedEmail,
+          'password': trimmedPassword,
+        },
+      ),
+      endpoint: 'Login',
+    );
+  }
+
   Future<Map<String, dynamic>> sendTextQuery(String question) async {
     final trimmedQuestion = question.trim();
     if (trimmedQuestion.isEmpty) {
@@ -46,14 +72,13 @@ class QanounyApiService {
       );
     }
 
-    // Use FormData as per new API documentation
     final formData = FormData.fromMap({
       'question': trimmedQuestion,
     });
 
     _logFormData('/api/query/text', formData);
     return _execute(
-      () => _dio.post(
+          () => _dio.post(
         '/api/query/text',
         data: formData,
       ),
@@ -69,7 +94,7 @@ class QanounyApiService {
 
     _logFormData('/api/query/audio', formData);
     return _execute(
-      () => _dio.post(
+          () => _dio.post(
         '/api/query/audio',
         data: formData,
       ),
@@ -78,9 +103,9 @@ class QanounyApiService {
   }
 
   Future<Map<String, dynamic>> sendFileQuery(
-    String filePath,
-    String question,
-  ) async {
+      String filePath,
+      String question,
+      ) async {
     final trimmedQuestion = question.trim();
     if (trimmedQuestion.isEmpty) {
       throw const QanounyApiException(
@@ -97,10 +122,9 @@ class QanounyApiService {
 
     _logFormData('/api/query/file', formData);
     return _execute(
-      () => _dio.post(
+          () => _dio.post(
         '/api/query/file',
         data: formData,
-        
       ),
       endpoint: '/api/query/file',
     );
@@ -118,7 +142,6 @@ class QanounyApiService {
       );
     }
 
-    // Use FormData as per new API documentation
     final formData = FormData.fromMap({
       'name': trimmedName,
       'gender': trimmedGender,
@@ -126,7 +149,7 @@ class QanounyApiService {
 
     _logFormData('/api/init', formData);
     return _execute(
-      () => _dio.post(
+          () => _dio.post(
         '/api/init',
         data: formData,
       ),
@@ -136,27 +159,26 @@ class QanounyApiService {
 
   Future<Map<String, dynamic>> healthCheck() async {
     return _execute(
-      () => _dio.get('/'),
+          () => _dio.get('/'),
       endpoint: '/',
     );
   }
 
   Future<Map<String, dynamic>> _execute(
-    Future<Response<dynamic>> Function() request, {
-    required String endpoint,
-  }) async {
+      Future<Response<dynamic>> Function() request, {
+        required String endpoint,
+      }) async {
     try {
       final response = await request();
       _logResponse(endpoint, response);
       final data = _asMap(response.data);
-      
-      // Check if the response indicates an error (success: false with error_message)
+
       if (data.containsKey('success') && data['success'] == false) {
-        final errorMessage = data['error_message']?.toString() ?? 
+        final errorMessage = data['error_message']?.toString() ??
             'An error occurred while processing your request.';
         throw QanounyApiException(errorMessage);
       }
-      
+
       return data;
     } on DioException catch (error) {
       _logDioError(endpoint, error);
@@ -178,12 +200,10 @@ class QanounyApiService {
 
   String _resolveDioMessage(DioException error) {
     final responseData = error.response?.data;
-    
-    // Handle validation errors (often in 'detail' field as a list)
+
     if (responseData is Map && responseData['detail'] != null) {
       final detail = responseData['detail'];
       if (detail is List) {
-        // Format validation errors from list with user-friendly messages
         final messages = detail.map((e) {
           if (e is Map) {
             final loc = e['loc'];
@@ -192,9 +212,9 @@ class QanounyApiService {
               final field = loc is List && loc.length > 1 ? loc.last : 'field';
               final fieldName = field.toString();
               final message = msg.toString();
-              
-              // Provide user-friendly error messages
-              if (fieldName == 'question' && message.toLowerCase().contains('required')) {
+
+              if (fieldName == 'question' &&
+                  message.toLowerCase().contains('required')) {
                 return 'Please enter a question before sending.';
               }
               if (message.toLowerCase().contains('required')) {
@@ -209,12 +229,11 @@ class QanounyApiService {
       }
       return detail.toString();
     }
-    
+
     if (responseData is Map && responseData['message'] != null) {
       return responseData['message'].toString();
     }
-    
-    // Handle validation errors as list in responseData
+
     if (responseData is List) {
       final messages = responseData.map((e) {
         if (e is Map) {
@@ -224,9 +243,9 @@ class QanounyApiService {
             final field = loc is List && loc.length > 1 ? loc.last : 'field';
             final fieldName = field.toString();
             final message = msg.toString();
-            
-            // Provide user-friendly error messages
-            if (fieldName == 'question' && message.toLowerCase().contains('required')) {
+
+            if (fieldName == 'question' &&
+                message.toLowerCase().contains('required')) {
               return 'Please enter a question before sending.';
             }
             if (message.toLowerCase().contains('required')) {
@@ -239,7 +258,7 @@ class QanounyApiService {
       }).join(', ');
       return messages.isNotEmpty ? messages : 'Validation error occurred.';
     }
-    
+
     if (error.type == DioExceptionType.connectionTimeout ||
         error.type == DioExceptionType.receiveTimeout) {
       return 'The server is taking too long to respond. Please try again shortly.';
@@ -254,9 +273,9 @@ class QanounyApiService {
   }
 
   Future<MultipartFile> _multipartFromFile(
-    String filePath,
-    String fileName,
-  ) async {
+      String filePath,
+      String fileName,
+      ) async {
     final mediaType = _resolveMediaType(filePath);
     return MultipartFile.fromFile(
       filePath,
@@ -305,8 +324,8 @@ class QanounyApiService {
         final contentType = file.contentType;
         buffer.writeln(
           '  ${fileEntry.key}: ${file.filename} '
-          '(${file.length ?? 'unknown'} bytes, '
-          '${contentType != null ? '${contentType.type}/${contentType.subtype}' : 'content-type: auto'})',
+              '(${file.length ?? 'unknown'} bytes, '
+              '${contentType != null ? '${contentType.type}/${contentType.subtype}' : 'content-type: auto'})',
         );
       }
     }
@@ -320,7 +339,7 @@ class QanounyApiService {
       ..writeln('[$endpoint] Request headers: ${_formatHeaders(requestHeaders)}')
       ..writeln(
         '[$endpoint] Response status: ${response.statusCode} '
-        '(${response.statusMessage ?? 'no-status-message'})',
+            '(${response.statusMessage ?? 'no-status-message'})',
       )
       ..writeln(
         '[$endpoint] Response headers: ${_formatHeaders(responseHeaders)}',
@@ -332,14 +351,15 @@ class QanounyApiService {
   void _logDioError(String endpoint, DioException error) {
     final requestHeaders = error.requestOptions.headers;
     final buffer = StringBuffer()
-      ..writeln('[ERROR $endpoint] Request headers: ${_formatHeaders(requestHeaders)}')
+      ..writeln(
+          '[ERROR $endpoint] Request headers: ${_formatHeaders(requestHeaders)}')
       ..writeln('[ERROR $endpoint] Message: ${error.message}');
     final response = error.response;
     if (response != null) {
       buffer
         ..writeln(
           '[ERROR $endpoint] Response status: ${response.statusCode} '
-          '(${response.statusMessage ?? 'no-status-message'})',
+              '(${response.statusMessage ?? 'no-status-message'})',
         )
         ..writeln(
           '[ERROR $endpoint] Response headers: ${_formatHeaders(response.headers.map)}',
@@ -357,13 +377,13 @@ class QanounyApiService {
     }
     return headers.entries
         .map((entry) {
-          final key = entry.key.toString();
-          final value = entry.value;
-          if (value is List) {
-            return '$key: ${value.join('|')}';
-          }
-          return '$key: $value';
-        })
+      final key = entry.key.toString();
+      final value = entry.value;
+      if (value is List) {
+        return '$key: ${value.join('|')}';
+      }
+      return '$key: $value';
+    })
         .join(', ');
   }
 
@@ -377,5 +397,3 @@ class QanounyApiService {
     print('[QanounyApiService] $message');
   }
 }
-
-
