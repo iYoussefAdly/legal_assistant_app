@@ -133,7 +133,7 @@ class SignUpViewBody extends StatelessWidget {
                         alignment: AlignmentGeometry.center,
                         child: GestureDetector(
                           onTap: () {
-                            Navigator.pushReplacement(
+                            Navigator.push(
                               context,
                               MaterialPageRoute(
                                 builder: (context) {
@@ -174,7 +174,7 @@ class SignUpViewBody extends StatelessWidget {
                                     return;
                                   }
                                   context.read<SignupCubit>().signup(
-                                    user_data(
+                                    UserData(
                                       nationalId: nationalIdController.text,
                                       fullName: fullNameController.text,
                                       email: emailController.text,
