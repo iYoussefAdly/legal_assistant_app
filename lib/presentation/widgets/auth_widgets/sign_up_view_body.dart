@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:legal_assistant_app/core/utils/app_styles.dart';
+import 'package:legal_assistant_app/core/utils/helpers/show_snack_bar.dart';
 import 'package:legal_assistant_app/data/models/user_data.dart';
 import 'package:legal_assistant_app/logic/cubit/signup_cubit.dart';
 import 'package:legal_assistant_app/logic/states/signup_state.dart';
-import 'package:legal_assistant_app/presentation/views/chat_view.dart';
 import 'package:legal_assistant_app/presentation/views/sign_in_view.dart';
 import 'package:legal_assistant_app/presentation/widgets/auth_widgets/custom_button.dart';
 import 'package:legal_assistant_app/presentation/widgets/auth_widgets/custom_text_field.dart';
@@ -26,19 +26,17 @@ class SignUpViewBody extends StatelessWidget {
       child: BlocConsumer<SignupCubit, SignupState>(
         listener: (context, state) {
           if (state is SignupFailure) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.error), backgroundColor: Colors.red),
-            );
+            showSnackBar(context, state.error);
           } else if (state is SignupSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Signup Successful!'),
+                content: Text('Signup Successful! you can login now'),
                 backgroundColor: Colors.green,
               ),
             );
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => ChatView()),
+              MaterialPageRoute(builder: (context) => SignInView()),
             );
           }
         },
@@ -133,7 +131,7 @@ class SignUpViewBody extends StatelessWidget {
                         alignment: AlignmentGeometry.center,
                         child: GestureDetector(
                           onTap: () {
-                            Navigator.push(
+                            Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
                                 builder: (context) {

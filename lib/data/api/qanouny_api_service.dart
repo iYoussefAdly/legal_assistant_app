@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
 
@@ -6,22 +7,21 @@ import 'package:http_parser/http_parser.dart';
 import 'package:legal_assistant_app/data/api/api_exception.dart';
 import 'package:mime/mime.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
-import 'api_endpoints.dart';
 
 class QanounyApiService {
   QanounyApiService({Dio? dio})
       : _dio = dio ??
-      Dio(
-        BaseOptions(
-          baseUrl: _baseUrl,
-          connectTimeout: const Duration(minutes: 5),
-          receiveTimeout: const Duration(minutes: 5),
-          sendTimeout: const Duration(minutes: 5),
-          responseType: ResponseType.json,
-        ),
-      ) {
+            Dio(
+              BaseOptions(
+                baseUrl: _baseUrl,
+                connectTimeout: const Duration(minutes: 5),
+                receiveTimeout: const Duration(minutes: 5),
+                sendTimeout: const Duration(minutes: 5),
+                responseType: ResponseType.json,
+              ),
+            ) {
     final hasLogger =
-    _dio.interceptors.any((element) => element is PrettyDioLogger);
+        _dio.interceptors.any((element) => element is PrettyDioLogger);
     if (!hasLogger) {
       _dio.interceptors.add(
         PrettyDioLogger(
@@ -34,36 +34,124 @@ class QanounyApiService {
       );
     }
   }
-
   static const String _baseUrl = 'http://52.143.145.178:8000';
-
+  static const String _azureFunctionKey = 'nb7jrePPZdZkW_m40b-K12SRVOcGY5u1bgwXDh7ywjgoAzFuvjEF6w==';
+  static const String _azureBaseUrl = 'https://sql-function-b3c7e6exa9f9acdu.francecentral-01.azurewebsites.net/api';
   final Dio _dio;
-
   Future<Map<String, dynamic>> login({
-    required String email,
+    required String nationalId,
     required String password,
   }) async {
-    final trimmedEmail = email.trim();
+    final trimmedNationalId = nationalId.trim();
     final trimmedPassword = password.trim();
 
-    if (trimmedEmail.isEmpty || trimmedPassword.isEmpty) {
+    if (trimmedNationalId.isEmpty || trimmedPassword.isEmpty) {
       throw const QanounyApiException(
-        'Email and password are required.',
+        'National ID and password are required.',
       );
     }
 
     return _execute(
-          () => _dio.post(
-        ApiEndpoints.loginUrl,
-        data: {
-          'email': trimmedEmail,
-          'password': trimmedPassword,
-        },
-      ),
-      endpoint: 'Login',
+      () async {
+        // استخدام Dio منفصل للاتصال بـ Azure Function
+        final azureDio = Dio(
+          BaseOptions(
+            connectTimeout: const Duration(minutes: 5),
+            receiveTimeout: const Duration(minutes: 5),
+            sendTimeout: const Duration(minutes: 5),
+            responseType: ResponseType.json,
+          ),
+        );
+
+        // إضافة Logger
+        azureDio.interceptors.add(
+          PrettyDioLogger(
+            requestHeader: true,
+            requestBody: true,
+            responseHeader: false,
+            responseBody: true,
+            compact: true,
+          ),
+        );
+
+        // بناء الـ URL حسب كود Python في الوثيقة
+        // في Python: response = requests.post(f"{BASE_URL}/read_user_data?code={FUNCTION_KEY}", json=read_data)
+        final url = '$_azureBaseUrl/read_user_data?code=$_azureFunctionKey';
+
+        print('[Login] محاولة وفقاً لكود Python: POST $url');
+        print('[Login] البيانات: {"NationalId": "$trimmedNationalId"}');
+
+        // تنفيذ طلب POST مثل كود Python تمامًا
+        final Response response = await azureDio.post(
+          url,
+          data: {'NationalId': trimmedNationalId},
+          options: Options(
+            headers: {'Content-Type': 'application/json'},
+          ),
+        );
+
+        // التحقق من حالة الاستجابة
+        if (response.statusCode == 200) {
+          dynamic responseData = response.data;
+          Map<String, dynamic> userData;
+
+          print('[Login] استجابة من السيرفر: ${response.data}');
+
+          // تحليل الاستجابة
+          if (responseData is String) {
+            // البحث عن بداية JSON في النص
+            final startIndex = responseData.indexOf('{');
+            final endIndex = responseData.lastIndexOf('}');
+            
+            if (startIndex == -1 || endIndex == -1) {
+              throw const QanounyApiException('Invalid response format from server.');
+            }
+            
+            try {
+              final jsonString = responseData.substring(startIndex, endIndex + 1);
+              userData = jsonDecode(jsonString);
+            } catch (e) {
+              print('[Login] خطأ في تحليل JSON: $e');
+              throw const QanounyApiException('Failed to parse user data.');
+            }
+          } else if (responseData is Map) {
+            userData = responseData.cast<String, dynamic>();
+          } else {
+            throw const QanounyApiException('Unexpected response type from server.');
+          }
+
+          // التحقق من وجود PasswordHash
+          final storedPasswordHash = userData['PasswordHash']?.toString();
+          if (storedPasswordHash == null) {
+            print('[Login] بيانات المستخدم المستلمة: $userData');
+            throw const QanounyApiException('User data is incomplete - PasswordHash missing.');
+          }
+
+          print('[Login] كلمة المرور المخزنة: $storedPasswordHash');
+          print('[Login] كلمة المرور المدخلة: $trimmedPassword');
+
+          // مقارنة كلمة المرور
+          if (trimmedPassword == storedPasswordHash) {
+            return Response(
+              requestOptions: response.requestOptions,
+              data: userData,
+              statusCode: response.statusCode,
+              statusMessage: response.statusMessage,
+              headers: response.headers,
+              isRedirect: response.isRedirect,
+              redirects: response.redirects,
+              extra: response.extra,
+            );
+          } else {
+            throw const QanounyApiException('Incorrect password.');
+          }
+        } else {
+          throw QanounyApiException('Login failed. Status: ${response.statusCode}, Response: ${response.data}');
+        }
+      },
+      endpoint: 'read_user_data',
     );
   }
-
   Future<Map<String, dynamic>> sendTextQuery(String question) async {
     final trimmedQuestion = question.trim();
     if (trimmedQuestion.isEmpty) {
@@ -323,9 +411,9 @@ class QanounyApiService {
         final file = fileEntry.value;
         final contentType = file.contentType;
         buffer.writeln(
-          '  ${fileEntry.key}: ${file.filename} '
-              '(${file.length ?? 'unknown'} bytes, '
-              '${contentType != null ? '${contentType.type}/${contentType.subtype}' : 'content-type: auto'})',
+            '  ${fileEntry.key}: ${file.filename} '
+            '(${file.length ?? 'unknown'} bytes, '
+            '${contentType != null ? '${contentType.type}/${contentType.subtype}' : 'content-type: auto'})',
         );
       }
     }
@@ -338,11 +426,11 @@ class QanounyApiService {
     final buffer = StringBuffer()
       ..writeln('[$endpoint] Request headers: ${_formatHeaders(requestHeaders)}')
       ..writeln(
-        '[$endpoint] Response status: ${response.statusCode} '
-            '(${response.statusMessage ?? 'no-status-message'})',
+          '[$endpoint] Response status: ${response.statusCode} '
+          '(${response.statusMessage ?? 'no-status-message'})',
       )
       ..writeln(
-        '[$endpoint] Response headers: ${_formatHeaders(responseHeaders)}',
+          '[$endpoint] Response headers: ${_formatHeaders(response.headers.map)}',
       )
       ..writeln('[$endpoint] Response data: ${response.data}');
     _recordLog(buffer.toString());
@@ -358,11 +446,11 @@ class QanounyApiService {
     if (response != null) {
       buffer
         ..writeln(
-          '[ERROR $endpoint] Response status: ${response.statusCode} '
-              '(${response.statusMessage ?? 'no-status-message'})',
+            '[ERROR $endpoint] Response status: ${response.statusCode} '
+            '(${response.statusMessage ?? 'no-status-message'})',
         )
         ..writeln(
-          '[ERROR $endpoint] Response headers: ${_formatHeaders(response.headers.map)}',
+            '[ERROR $endpoint] Response headers: ${_formatHeaders(response.headers.map)}',
         )
         ..writeln('[ERROR $endpoint] Response data: ${response.data}');
     } else {
@@ -393,7 +481,6 @@ class QanounyApiService {
       name: 'QanounyApiService',
       error: error,
     );
-    // ignore: avoid_print
     print('[QanounyApiService] $message');
   }
 }
