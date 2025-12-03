@@ -5,6 +5,7 @@ import 'package:legal_assistant_app/data/api/qanouny_api_service.dart';
 import 'package:legal_assistant_app/data/repository/qanouny_repository.dart';
 import 'package:legal_assistant_app/logic/cubit/audio_query_cubit.dart';
 import 'package:legal_assistant_app/logic/cubit/file_query_cubit.dart';
+import 'package:legal_assistant_app/logic/cubit/login_cubit.dart';
 import 'package:legal_assistant_app/logic/cubit/text_query_cubit.dart';
 import 'package:legal_assistant_app/presentation/views/splash_view.dart';
 
@@ -29,6 +30,9 @@ class LegalAssistantApp extends StatelessWidget {
       value: repository,
       child: MultiBlocProvider(
         providers: [
+           BlocProvider<LoginCubit>(
+      create: (_) => LoginCubit(),
+    ),
           BlocProvider<TextQueryCubit>(
             create: (context) => TextQueryCubit(repository),
           ),

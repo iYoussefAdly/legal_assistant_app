@@ -414,6 +414,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
     }
   }
 
+
   Future<_ChatInitPayload?> _showChatInitDialog() async {
     final nameController = TextEditingController();
     final genderController = TextEditingController();
