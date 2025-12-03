@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:legal_assistant_app/core/utils/app_styles.dart';
+import 'package:legal_assistant_app/core/utils/helpers/build_border.dart';
 
 class CustomTextField extends StatefulWidget {
   const CustomTextField({
@@ -8,11 +10,16 @@ class CustomTextField extends StatefulWidget {
     required this.isItPassword,
     this.controller,
     this.validator,
+    this.keyboardType,
+    this.inputFormatters,
   });
   final String hintText;
   final bool isItPassword;
   final TextEditingController? controller;
   final String? Function(String?)? validator;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+
   @override
   State<CustomTextField> createState() => _CustomTextFieldState();
 }
@@ -25,11 +32,14 @@ class _CustomTextFieldState extends State<CustomTextField> {
       obscureText: widget.isItPassword ? obscureText : false,
       controller: widget.controller,
       validator: widget.validator,
+      keyboardType: widget.keyboardType,
+      inputFormatters: widget.inputFormatters,
       decoration: InputDecoration(
         contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 15),
         enabledBorder: buildBorder(),
         focusedBorder: buildBorder(),
-        errorBorder: OutlineInputBorder(),
+        errorBorder: buildErrorBorder(),
+        focusedErrorBorder: buildErrorBorder(),
         hintText: widget.hintText,
         hintStyle: AppStyles.styleRegular16,
         suffixIcon: widget.isItPassword
@@ -39,18 +49,13 @@ class _CustomTextFieldState extends State<CustomTextField> {
                   setState(() {});
                 },
                 icon: obscureText
-                    ? Icon(Icons.visibility_off)
-                    : Icon(Icons.visibility),
+                    ? const Icon(Icons.visibility_off)
+                    : const Icon(Icons.visibility),
               )
             : null,
       ),
     );
   }
 
-  OutlineInputBorder buildBorder() {
-    return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10),
-      borderSide: BorderSide(color: Color(0xff75707A)),
-    );
-  }
+  
 }

@@ -23,9 +23,9 @@ class SignInViewBody extends StatelessWidget {
               context,
               MaterialPageRoute(builder: (context) => const ChatView()),
             );
-            showSnackBar(context, "Login Successful. Welcome!");
+            showSnackBar(context, "Login Successful. Welcome!",Colors.green);
           } else if (state is LoginFailure) {
-            showSnackBar(context, state.errorMessage);
+            showSnackBar(context, state.errorMessage,Colors.red);
           }
         },
         builder: (context, state) {
@@ -44,12 +44,24 @@ class SignInViewBody extends StatelessWidget {
                         const AuthHeader(text: 'Sign in to continue'),
                         const SizedBox(height: 64),
                         CustomTextField(
-                          hintText: "enter your National ID",
-                          isItPassword: false,
-                          controller: cubit.nationalIdController,
-                          validator: (value) =>
-                              value!.isEmpty ? 'National ID is required' : null,
-                        ),
+                        hintText: "Enter your National ID",
+                        isItPassword: false,
+                        controller: cubit.nationalIdController,
+                        keyboardType: TextInputType.number,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your National ID';
+                          }
+                          if (value.length != 14) {
+                            return "National ID must be 14 digits";
+                          }
+                          final nIdRegex = RegExp(r'^[0-9]+$');
+                          if (!nIdRegex.hasMatch(value)) {
+                            return "National ID must contain only digits (0-9)";
+                          }
+                          return null;
+                        },
+                      ),
                         const SizedBox(height: 16),
                         CustomTextField(
                           hintText: "enter your password",
@@ -58,17 +70,7 @@ class SignInViewBody extends StatelessWidget {
                           validator: (value) =>
                               value!.isEmpty ? 'Password is required' : null,
                         ),
-                        const SizedBox(height: 32),
-                        Align(
-                          alignment: AlignmentGeometry.centerRight,
-                          child: Text(
-                            "Forget Password?",
-                            style: AppStyles.styleRegular14.copyWith(
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 64),
                         Align(
                           alignment: AlignmentGeometry.center,
                           child: GestureDetector(
