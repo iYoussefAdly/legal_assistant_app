@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // لاستخدام InputFormatters
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:legal_assistant_app/core/utils/app_styles.dart';
 import 'package:legal_assistant_app/core/utils/helpers/show_snack_bar.dart';
@@ -9,16 +10,21 @@ import 'package:legal_assistant_app/presentation/views/sign_in_view.dart';
 import 'package:legal_assistant_app/presentation/widgets/auth_widgets/custom_button.dart';
 import 'package:legal_assistant_app/presentation/widgets/auth_widgets/custom_text_field.dart';
 import 'package:legal_assistant_app/presentation/widgets/auth_widgets/auth_header.dart';
+import 'package:legal_assistant_app/presentation/widgets/auth_widgets/gender_drop_down_field.dart';
 
-class SignUpViewBody extends StatelessWidget {
-  TextEditingController nationalIdController = TextEditingController();
-  TextEditingController fullNameController = TextEditingController();
-  TextEditingController emailController = TextEditingController();
-  TextEditingController passwordController = TextEditingController();
-  TextEditingController genderController = TextEditingController();
+class SignUpViewBody extends StatefulWidget {
+  const SignUpViewBody({super.key});
+
+  @override
+  State<SignUpViewBody> createState() => _SignUpViewBodyState();
+}
+class _SignUpViewBodyState extends State<SignUpViewBody> {
+  final TextEditingController nationalIdController = TextEditingController();
+  final TextEditingController fullNameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  String? selectedGender;
   final formKey = GlobalKey<FormState>();
-  SignUpViewBody({super.key});
-
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
@@ -26,17 +32,16 @@ class SignUpViewBody extends StatelessWidget {
       child: BlocConsumer<SignupCubit, SignupState>(
         listener: (context, state) {
           if (state is SignupFailure) {
-            showSnackBar(context, state.error);
+            showSnackBar(context, state.error, Colors.red);
           } else if (state is SignupSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Signup Successful! you can login now'),
-                backgroundColor: Colors.green,
-              ),
+            showSnackBar(
+              context,
+              'Account Created Successfully! Log in to continue.',
+              Colors.green,
             );
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => SignInView()),
+              MaterialPageRoute(builder: (context) => const SignInView()),
             );
           }
         },
@@ -44,28 +49,37 @@ class SignUpViewBody extends StatelessWidget {
           return Form(
             key: formKey,
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 28.5),
+              padding: const EdgeInsets.symmetric(horizontal: 28.5),
               child: Center(
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      AuthHeader(text: 'Sign up'),
-                      SizedBox(height: 64),
+                      const AuthHeader(text: 'Sign up'),
+                      const SizedBox(height: 64),
                       CustomTextField(
-                        hintText: "enter your National id",
+                        hintText: "Enter your National ID",
                         isItPassword: false,
                         controller: nationalIdController,
+                        keyboardType: TextInputType.number,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your National ID';
                           }
+                          if (value.length != 14) {
+                            return "National ID must be 14 digits";
+                          }
+                          final nIdRegex = RegExp(r'^[0-9]+$');
+                          if (!nIdRegex.hasMatch(value)) {
+                            return "National ID must contain only digits (0-9)";
+                          }
+                          return null;
                         },
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       CustomTextField(
-                        hintText: "enter your full name",
+                        hintText: "Enter your full name",
                         isItPassword: false,
                         controller: fullNameController,
                         validator: (value) {
@@ -75,13 +89,15 @@ class SignUpViewBody extends StatelessWidget {
                           if (value.length < 3) {
                             return 'Name must be at least 3 characters long';
                           }
+                          return null;
                         },
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       CustomTextField(
-                        hintText: "enter your email",
+                        hintText: "Enter your email",
                         isItPassword: false,
                         controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your email';
@@ -89,11 +105,12 @@ class SignUpViewBody extends StatelessWidget {
                           if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
                             return 'Please enter a valid email address';
                           }
+                          return null;
                         },
                       ),
-                      SizedBox(height: 16),
+                      const SizedBox(height: 16),
                       CustomTextField(
-                        hintText: "enter your password",
+                        hintText: "Enter your password",
                         isItPassword: true,
                         controller: passwordController,
                         validator: (value) {
@@ -103,30 +120,20 @@ class SignUpViewBody extends StatelessWidget {
                           if (value.length < 6) {
                             return 'Password must be at least 6 characters long';
                           }
+                          return null;
                         },
                       ),
-                      SizedBox(height: 16),
-                      CustomTextField(
-                        hintText: "enter your gender",
-                        isItPassword: false,
-                        controller: genderController,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your gender';
-                          }
+                      const SizedBox(height: 16),
+
+                      GenderDropdownField(
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            selectedGender = newValue;
+                          });
                         },
+                        selectedGender: selectedGender,
                       ),
-                      SizedBox(height: 32),
-                      Align(
-                        alignment: AlignmentGeometry.centerRight,
-                        child: Text(
-                          "Forget Password?",
-                          style: AppStyles.styleRegular14.copyWith(
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 32),
+                      const SizedBox(height: 64),
                       Align(
                         alignment: AlignmentGeometry.center,
                         child: GestureDetector(
@@ -135,7 +142,7 @@ class SignUpViewBody extends StatelessWidget {
                               context,
                               MaterialPageRoute(
                                 builder: (context) {
-                                  return SignInView();
+                                  return const SignInView();
                                 },
                               ),
                             );
@@ -144,7 +151,7 @@ class SignUpViewBody extends StatelessWidget {
                             text: TextSpan(
                               children: [
                                 TextSpan(
-                                  text: "Already have an account?",
+                                  text: "Already have an account? ",
                                   style: AppStyles.styleRegular18.copyWith(
                                     color: Colors.black,
                                   ),
@@ -152,7 +159,7 @@ class SignUpViewBody extends StatelessWidget {
                                 TextSpan(
                                   text: "Sign in",
                                   style: AppStyles.styleRegular18.copyWith(
-                                    color: Color(0xffAF63E8),
+                                    color: const Color(0xffAF63E8),
                                   ),
                                 ),
                               ],
@@ -160,9 +167,9 @@ class SignUpViewBody extends StatelessWidget {
                           ),
                         ),
                       ),
-                      SizedBox(height: 32),
+                      const SizedBox(height: 32),
                       state is SignupLoading
-                          ? Center(child: CircularProgressIndicator())
+                          ? const Center(child: CircularProgressIndicator())
                           : Align(
                               alignment: Alignment.center,
                               child: CustomButton(
@@ -177,7 +184,8 @@ class SignUpViewBody extends StatelessWidget {
                                       fullName: fullNameController.text,
                                       email: emailController.text,
                                       passwordHash: passwordController.text,
-                                      gender: genderController.text,
+                                      gender:
+                                          selectedGender!,
                                     ),
                                   );
                                 },
