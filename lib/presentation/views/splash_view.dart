@@ -36,7 +36,10 @@ class SplashScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Image.asset('assets/images/Frame 3.png'),
+                    Image.asset(
+                      'assets/images/FullFormTransparent.png',
+                      height: 200,
+                    ),
                     SizedBox(height: 32),
 
                     // Loading أثناء فحص تسجيل الدخول

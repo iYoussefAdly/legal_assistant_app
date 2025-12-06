@@ -11,22 +11,23 @@ class ContainerChat extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Color.fromRGBO(231, 214, 248, 1),
+        color: Color(0xFFCC6666),
+
         borderRadius: BorderRadius.circular(20),
       ),
       child: IconButton(
         onPressed: () {
-          // Navigator.pop(context); 
+          // Navigator.pop(context);
           // Logout
-        context.read<LoginCubit>().logout();
+          context.read<LoginCubit>().logout();
 
-        // Navigate to SignInView
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => SignInView()),
-        );
+          // Navigate to SignInView
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => SignInView()),
+          );
         },
-        icon: Icon(icon, color: Colors.black, size: 25),
+        icon: Icon(icon, color: Color(0xFFF6D3D3), size: 25),
       ),
     );
   }

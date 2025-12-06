@@ -23,9 +23,9 @@ class SignInViewBody extends StatelessWidget {
               context,
               MaterialPageRoute(builder: (context) => const ChatView()),
             );
-            showSnackBar(context, "Login Successful. Welcome!",Colors.green);
+            showSnackBar(context, "Login Successful. Welcome!", Colors.green);
           } else if (state is LoginFailure) {
-            showSnackBar(context, state.errorMessage,Colors.red);
+            showSnackBar(context, state.errorMessage, Colors.red);
           }
         },
         builder: (context, state) {
@@ -44,24 +44,24 @@ class SignInViewBody extends StatelessWidget {
                         const AuthHeader(text: 'Sign in to continue'),
                         const SizedBox(height: 64),
                         CustomTextField(
-                        hintText: "Enter your National ID",
-                        isItPassword: false,
-                        controller: cubit.nationalIdController,
-                        keyboardType: TextInputType.number,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your National ID';
-                          }
-                          if (value.length != 14) {
-                            return "National ID must be 14 digits";
-                          }
-                          final nIdRegex = RegExp(r'^[0-9]+$');
-                          if (!nIdRegex.hasMatch(value)) {
-                            return "National ID must contain only digits (0-9)";
-                          }
-                          return null;
-                        },
-                      ),
+                          hintText: "Enter your National ID",
+                          isItPassword: false,
+                          controller: cubit.nationalIdController,
+                          keyboardType: TextInputType.number,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your National ID';
+                            }
+                            if (value.length != 14) {
+                              return "National ID must be 14 digits";
+                            }
+                            final nIdRegex = RegExp(r'^[0-9]+$');
+                            if (!nIdRegex.hasMatch(value)) {
+                              return "National ID must contain only digits (0-9)";
+                            }
+                            return null;
+                          },
+                        ),
                         const SizedBox(height: 16),
                         CustomTextField(
                           hintText: "enter your password",
@@ -86,7 +86,7 @@ class SignInViewBody extends StatelessWidget {
                                   TextSpan(
                                     text: "Don't have an account? ",
                                     style: AppStyles.styleRegular18.copyWith(
-                                      color: Colors.black,
+                                      color: Color(0xFFF6D3D3),
                                     ),
                                   ),
                                   TextSpan(

@@ -49,13 +49,11 @@ class _CustomTextFieldState extends State<CustomTextField> {
                   setState(() {});
                 },
                 icon: obscureText
-                    ? const Icon(Icons.visibility_off)
-                    : const Icon(Icons.visibility),
+                    ? const Icon(Icons.visibility_off, color: Color(0xFFF6D3D3))
+                    : const Icon(Icons.visibility, color: Color(0xFFF6D3D3)),
               )
             : null,
       ),
     );
   }
-
-  
 }

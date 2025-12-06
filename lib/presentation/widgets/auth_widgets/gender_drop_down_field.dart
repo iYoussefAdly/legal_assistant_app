@@ -16,14 +16,21 @@ class GenderDropdownField extends StatelessWidget {
     return DropdownButtonFormField<String>(
       value: selectedGender,
       decoration: InputDecoration(
-        contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
+        contentPadding: const EdgeInsets.symmetric(
+          vertical: 15,
+          horizontal: 15,
+        ),
         enabledBorder: buildBorder(),
         focusedBorder: buildBorder(),
         errorBorder: buildErrorBorder(),
         focusedErrorBorder: buildErrorBorder(),
+
         hintText: "Select your gender",
         hintStyle: AppStyles.styleRegular16,
       ),
+
+      iconEnabledColor: Colors.white.withOpacity(0.85),
+      iconDisabledColor: Colors.white.withOpacity(0.5),
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Please select your gender';
@@ -31,18 +38,10 @@ class GenderDropdownField extends StatelessWidget {
         return null;
       },
       items: const [
-        DropdownMenuItem(
-          value: "Male",
-          child: Text("Male"),
-        ),
-        DropdownMenuItem(
-          value: "Female",
-          child: Text("Female"),
-        ),
+        DropdownMenuItem(value: "Male", child: Text("Male")),
+        DropdownMenuItem(value: "Female", child: Text("Female")),
       ],
       onChanged: onChanged,
     );
   }
-
-  
 }
