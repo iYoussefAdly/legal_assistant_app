@@ -18,6 +18,7 @@ class SignUpViewBody extends StatefulWidget {
   @override
   State<SignUpViewBody> createState() => _SignUpViewBodyState();
 }
+
 class _SignUpViewBodyState extends State<SignUpViewBody> {
   final TextEditingController nationalIdController = TextEditingController();
   final TextEditingController fullNameController = TextEditingController();
@@ -153,7 +154,7 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                                 TextSpan(
                                   text: "Already have an account? ",
                                   style: AppStyles.styleRegular18.copyWith(
-                                    color: Colors.black,
+                                    color: Colors.white,
                                   ),
                                 ),
                                 TextSpan(
@@ -184,8 +185,7 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                                       fullName: fullNameController.text,
                                       email: emailController.text,
                                       passwordHash: passwordController.text,
-                                      gender:
-                                          selectedGender!,
+                                      gender: selectedGender!,
                                     ),
                                   );
                                 },

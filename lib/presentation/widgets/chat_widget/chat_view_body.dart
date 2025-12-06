@@ -61,6 +61,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context).size;
@@ -96,7 +97,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
                         width: media.width * .3,
                         height: media.height * .05,
                         decoration: BoxDecoration(
-                          color: const Color.fromRGBO(231, 214, 248, 1),
+                          color: const Color(0xFFCC6666),
                           borderRadius: BorderRadius.circular(30),
                         ),
                         child: Row(
@@ -105,7 +106,11 @@ class _ChatViewBodyState extends State<ChatViewBody> {
                           children: [
                             Text('New Chat', style: AppStyles.styleSemitBold14),
                             SizedBox(width: media.width * .02),
-                            const Icon(Icons.restart_alt, size: 24),
+                            const Icon(
+                              Icons.restart_alt,
+                              size: 24,
+                              color: Colors.white,
+                            ),
                           ],
                         ),
                       ),
@@ -250,8 +255,10 @@ class _ChatViewBodyState extends State<ChatViewBody> {
                               height: media.height * .05,
                               width: media.width * .1,
                               borderRadius: 30,
-                              child:
-                                  const Icon(Icons.arrow_outward_sharp, size: 25),
+                              child: const Icon(
+                                Icons.arrow_outward_sharp,
+                                size: 25,
+                              ),
                             ),
                           ),
                         ],
@@ -355,8 +362,9 @@ class _ChatViewBodyState extends State<ChatViewBody> {
   }
 
   Future<void> _pickDocument({required bool isImage}) async {
-    final allowedExtensions =
-        isImage ? const ['png', 'jpg', 'jpeg'] : const ['pdf'];
+    final allowedExtensions = isImage
+        ? const ['png', 'jpg', 'jpeg']
+        : const ['pdf'];
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
       allowedExtensions: allowedExtensions,
@@ -372,10 +380,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
     if (!mounted || question == null) return;
 
     _questionController.clear();
-    _addUserMessage(
-      question,
-      kind: MessageKind.file,
-    );
+    _addUserMessage(question, kind: MessageKind.file);
     _clearError();
     context.read<FileQueryCubit>().sendFileQuery(file!.path!, question);
   }
@@ -414,7 +419,6 @@ class _ChatViewBodyState extends State<ChatViewBody> {
     }
   }
 
-
   Future<_ChatInitPayload?> _showChatInitDialog() async {
     final nameController = TextEditingController();
     final genderController = TextEditingController();
@@ -433,16 +437,12 @@ class _ChatViewBodyState extends State<ChatViewBody> {
                 children: [
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Name',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Name'),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: genderController,
-                    decoration: const InputDecoration(
-                      labelText: 'Gender',
-                    ),
+                    decoration: const InputDecoration(labelText: 'Gender'),
                   ),
                   if (errorText != null) ...[
                     const SizedBox(height: 12),
@@ -469,8 +469,9 @@ class _ChatViewBodyState extends State<ChatViewBody> {
                       );
                       return;
                     }
-                    Navigator.of(context)
-                        .pop(_ChatInitPayload(name: name, gender: gender));
+                    Navigator.of(
+                      context,
+                    ).pop(_ChatInitPayload(name: name, gender: gender));
                   },
                   child: const Text('Start'),
                 ),
@@ -482,14 +483,11 @@ class _ChatViewBodyState extends State<ChatViewBody> {
     );
     return result;
   }
+
   void _addUserMessage(String text, {MessageKind kind = MessageKind.text}) {
     setState(() {
       _messages.add(
-        ChatMessage(
-          role: MessageRole.user,
-          content: text,
-          kind: kind,
-        ),
+        ChatMessage(role: MessageRole.user, content: text, kind: kind),
       );
     });
     _scrollToBottom();
@@ -506,8 +504,8 @@ class _ChatViewBodyState extends State<ChatViewBody> {
   }
 
   void _addAudioConversation(AudioQueryResponse response) {
-    final userQuestion = (response.transcript != null &&
-            response.transcript!.trim().isNotEmpty)
+    final userQuestion =
+        (response.transcript != null && response.transcript!.trim().isNotEmpty)
         ? response.transcript!
         : response.query;
     _addUserMessage(userQuestion, kind: MessageKind.audio);
@@ -587,5 +585,3 @@ class _ChatInitPayload {
   final String name;
   final String gender;
 }
-
-
