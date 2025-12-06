@@ -16,11 +16,7 @@ class ContainerChat extends StatelessWidget {
       ),
       child: IconButton(
         onPressed: () {
-          // Navigator.pop(context); 
-          // Logout
         context.read<LoginCubit>().logout();
-
-        // Navigate to SignInView
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => SignInView()),
