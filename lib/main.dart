@@ -7,6 +7,7 @@ import 'package:legal_assistant_app/logic/cubit/audio_query_cubit.dart';
 import 'package:legal_assistant_app/logic/cubit/file_query_cubit.dart';
 import 'package:legal_assistant_app/logic/cubit/login_cubit.dart';
 import 'package:legal_assistant_app/logic/cubit/text_query_cubit.dart';
+import 'package:legal_assistant_app/logic/cubit/upload_documnet_cubit.dart';
 import 'package:legal_assistant_app/presentation/views/splash_view.dart';
 
 Future<void> main() async {
@@ -30,9 +31,9 @@ class LegalAssistantApp extends StatelessWidget {
       value: repository,
       child: MultiBlocProvider(
         providers: [
-           BlocProvider<LoginCubit>(
-      create: (_) => LoginCubit(),
-    ),
+          BlocProvider<LoginCubit>(
+            create: (_) => LoginCubit(),
+          ),
           BlocProvider<TextQueryCubit>(
             create: (context) => TextQueryCubit(repository),
           ),
@@ -41,6 +42,10 @@ class LegalAssistantApp extends StatelessWidget {
           ),
           BlocProvider<FileQueryCubit>(
             create: (context) => FileQueryCubit(repository),
+          ),
+          // ⬅️ أضف UploadDocumentCubit هنا
+          BlocProvider<UploadDocumentCubit>(
+            create: (context) => UploadDocumentCubit(repository),
           ),
         ],
         child: MaterialApp(

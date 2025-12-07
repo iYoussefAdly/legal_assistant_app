@@ -1,29 +1,56 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:legal_assistant_app/logic/cubit/login_cubit.dart';
-import 'package:legal_assistant_app/presentation/views/sign_in_view.dart';
 
 class ContainerChat extends StatelessWidget {
-  final IconData icon;
-  const ContainerChat({super.key, required this.icon});
+  final double? height;
+  final double? width;
+  final Widget child;
+  final double borderRadius;
+  final Color? backgroundColor;
+  final Color? borderColor;
+  final bool withBorder;
+  final EdgeInsetsGeometry? padding;
+  final VoidCallback? onTap; // أضفنا onTap
+
+  const ContainerChat({
+    super.key,
+    this.height,
+    this.width,
+    required this.child,
+    required this.borderRadius,
+    this.backgroundColor,
+    this.borderColor,
+    this.withBorder = true,
+    this.padding,
+    this.onTap, // أضفنا onTap هنا
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    Widget container = Container(
+      width: width,
+      height: height,
+      padding: padding,
       decoration: BoxDecoration(
-        color: Color.fromRGBO(231, 214, 248, 1),
-        borderRadius: BorderRadius.circular(20),
+        color: backgroundColor ?? const Color(0xCCFFFFFF),
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: withBorder
+            ? Border.all(
+                color: borderColor ?? Colors.white.withOpacity(0.5),
+                width: 1.5,
+              )
+            : null,
       ),
-      child: IconButton(
-        onPressed: () {
-        context.read<LoginCubit>().logout();
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => SignInView()),
-        );
-        },
-        icon: Icon(icon, color: Colors.black, size: 25),
-      ),
+      child: child,
     );
+
+    // إذا كان هناك onTap، ضع Container داخل GestureDetector
+    if (onTap != null) {
+      return GestureDetector(
+        onTap: onTap,
+        child: container,
+      );
+    }
+
+    return container;
   }
 }

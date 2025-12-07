@@ -19,16 +19,12 @@ class ContainerChatBottom extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color.fromRGBO(218, 168, 255, .4),
-            Color.fromRGBO(237, 228, 247, 1),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: const Color(0xCCFFFFFF), // لون ثابت: أبيض شفاف (يمكنك تغيير هذا اللون)
+        borderRadius: BorderRadius.circular(borderRadius), // يجب إضافة borderRadius هنا
+        border: Border.all(
+          color: Colors.white.withOpacity(0.5), 
+          width: 1.5,
         ),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.5), width: 1.5),
-        borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: child,
     );
