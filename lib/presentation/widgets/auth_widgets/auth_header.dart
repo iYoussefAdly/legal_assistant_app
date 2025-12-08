@@ -9,7 +9,7 @@ class AuthHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Welcome to QANOUNY AI", style: AppStyles.styleBold24),
+        Text("Welcome to Qanouny", style: AppStyles.styleBold24),
         SizedBox(height: 10),
         Text(text, style: AppStyles.styleRegular20),
       ],

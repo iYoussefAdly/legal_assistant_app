@@ -754,7 +754,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
           ..add(
             const ChatMessage(
               role: MessageRole.assistant,
-              content: 'Conversation cleared. I am ready to help with a new question.',
+              content: '"تم مسح المحادثة. أنا جاهز لمساعدتك في سؤال جديد."',
             ),
           );
         _errorMessage = null;

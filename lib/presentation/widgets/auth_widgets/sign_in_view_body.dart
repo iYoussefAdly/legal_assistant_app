@@ -64,7 +64,7 @@ class SignInViewBody extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         CustomTextField(
-                          hintText: "enter your password",
+                          hintText: "Enter your password",
                           isItPassword: true,
                           controller: cubit.passwordController,
                           validator: (value) =>

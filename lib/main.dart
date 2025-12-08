@@ -17,11 +17,11 @@ Future<void> main() async {
   final apiService = QanounyApiService();
   final repository = QanounyRepository(apiService);
 
-  runApp(LegalAssistantApp(repository: repository));
+  runApp(QanounyApp(repository: repository));
 }
 
-class LegalAssistantApp extends StatelessWidget {
-  const LegalAssistantApp({super.key, required this.repository});
+class QanounyApp extends StatelessWidget {
+  const QanounyApp({super.key, required this.repository});
 
   final QanounyRepository repository;
 

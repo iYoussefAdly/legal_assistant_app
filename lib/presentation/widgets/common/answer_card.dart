@@ -2,13 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:legal_assistant_app/core/utils/app_styles.dart';
 import 'package:legal_assistant_app/presentation/widgets/chat_widget/chat_message.dart';
-class AnswerCard extends StatelessWidget {
+
+class AnswerCard extends StatefulWidget {
   const AnswerCard({
     super.key,
     required this.message,
   });
 
   final ChatMessage message;
+
+  @override
+  State<AnswerCard> createState() => _AnswerCardState();
+}
+
+class _AnswerCardState extends State<AnswerCard> {
+  bool _showSources = false;
+  bool _showSummary = false;
 
   @override
   Widget build(BuildContext context) {
@@ -50,24 +59,24 @@ class AnswerCard extends StatelessWidget {
                 ),
                 
                 // المحتوى الأساسي
-                _MarkdownContent(text: message.content),
+                _MarkdownContent(text: widget.message.content),
                 
                 const SizedBox(height: 8),
                 
                 // Risk Level
-                if (message.riskLevel != null && message.riskLevel!.isNotEmpty)
+                if (widget.message.riskLevel != null && widget.message.riskLevel!.isNotEmpty)
                   Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: Text(
-                      '⚠️ Risk Level: ${message.riskLevel![0].toUpperCase()}${message.riskLevel!.substring(1)}',
+                      '⚠️ Risk Level: ${widget.message.riskLevel![0].toUpperCase()}${widget.message.riskLevel!.substring(1)}',
                       style: AppStyles.styleRegular14.copyWith(
-                        color: _getRiskColor(message.riskLevel!),
+                        color: _getRiskColor(widget.message.riskLevel!),
                       ),
                     ),
                   ),
                 
                 // Full Text إذا موجود
-                if (message.fullText?.isNotEmpty ?? false) ...[
+                if (widget.message.fullText?.isNotEmpty ?? false) ...[
                   Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: Column(
@@ -81,7 +90,7 @@ class AnswerCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          message.fullText!,
+                          widget.message.fullText!,
                           style: AppStyles.styleRegular14.copyWith(
                             color: Colors.white70,
                             height: 1.4,
@@ -92,59 +101,200 @@ class AnswerCard extends StatelessWidget {
                   ),
                 ],
                 
-                // Term Summary إذا موجود
-                if (message.termSummary?.isNotEmpty ?? false) ...[
+                // Term Summary Dropdown إذا موجود
+                if (widget.message.termSummary?.isNotEmpty ?? false) ...[
                   Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          '📋 Term Summary:',
-                          style: AppStyles.styleSemitBold14.copyWith(
-                            color: Colors.white70,
+                        // Dropdown Header
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _showSummary = !_showSummary;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[900],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.grey[700]!,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      _showSummary 
+                                          ? Icons.expand_less 
+                                          : Icons.expand_more,
+                                      color: Colors.white70,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '📋 Term Summary',
+                                      style: AppStyles.styleSemitBold14.copyWith(
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Icon(
+                                  _showSummary
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                  color: Colors.white70,
+                                  size: 16,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        _MarkdownContent(text: message.termSummary!),
+                        
+                        // Dropdown Content
+                        if (_showSummary) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[850],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.grey[700]!,
+                                width: 1,
+                              ),
+                            ),
+                            child: _MarkdownContent(text: widget.message.termSummary!),
+                          ),
+                        ],
                       ],
                     ),
                   ),
                 ],
                 
-                // Cited Sources إذا موجود
-                if (message.citedSources.isNotEmpty) ...[
+                // Cited Sources Dropdown إذا موجود
+                if (widget.message.citedSources.isNotEmpty) ...[
                   Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          '🔗 Cited Sources:',
-                          style: AppStyles.styleSemitBold14.copyWith(
-                            color: Colors.white70,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        ...message.citedSources.map((source) {
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 4),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                        // Dropdown Header
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _showSources = !_showSources;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[900],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.grey[700]!,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                if (source.category?.isNotEmpty ?? false)
-                                  Text(
-                                    '📁 ${source.category!}',
-                                    style: AppStyles.styleSemitBold14.copyWith(
-                                      color: Colors.blue[300],
+                                Row(
+                                  children: [
+                                    Icon(
+                                      _showSources 
+                                          ? Icons.expand_less 
+                                          : Icons.expand_more,
+                                      color: Colors.white70,
+                                      size: 20,
                                     ),
-                                  ),
-                                const SizedBox(height: 2),
-                                _MarkdownContent(text: source.text),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '🔗 Cited Sources (${widget.message.citedSources.length})',
+                                      style: AppStyles.styleSemitBold14.copyWith(
+                                        color: Colors.white70,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Icon(
+                                  _showSources
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
+                                  color: Colors.white70,
+                                  size: 16,
+                                ),
                               ],
                             ),
-                          );
-                        }).toList(),
+                          ),
+                        ),
+                        
+                        // Dropdown Content
+                        if (_showSources) ...[
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[850],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.grey[700]!,
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: widget.message.citedSources.map((source) {
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[800],
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      if (source.category?.isNotEmpty ?? false)
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.folder,
+                                              color: Colors.red,
+                                              size: 16,
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              source.category!,
+                                              style: AppStyles.styleSemitBold14.copyWith(
+                                                color: Colors.red,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      if (source.category?.isNotEmpty ?? false)
+                                        const SizedBox(height: 4),
+                                      _MarkdownContent(text: source.text),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
