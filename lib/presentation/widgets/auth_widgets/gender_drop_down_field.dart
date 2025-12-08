@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:legal_assistant_app/core/utils/app_styles.dart';
 import 'package:legal_assistant_app/core/utils/helpers/build_border.dart';
 
 class GenderDropdownField extends StatelessWidget {
@@ -8,27 +7,26 @@ class GenderDropdownField extends StatelessWidget {
     required this.onChanged,
     required this.selectedGender,
   });
-
   final void Function(String?) onChanged;
   final String? selectedGender;
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
       value: selectedGender,
+      style: const TextStyle(color: Colors.white),
+      dropdownColor: const Color(0xFF1E1E1E),
+      hint: const Text(
+        "Select your gender",
+        style: TextStyle(color: Colors.white),
+      ),
       decoration: InputDecoration(
-        contentPadding: const EdgeInsets.symmetric(
-          vertical: 15,
-          horizontal: 15,
-        ),
+        contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 15),
         enabledBorder: buildBorder(),
         focusedBorder: buildBorder(),
         errorBorder: buildErrorBorder(),
         focusedErrorBorder: buildErrorBorder(),
-
-        hintText: "Select your gender",
-        hintStyle: AppStyles.styleRegular16,
+        errorStyle: const TextStyle(color: Color(0xffB0251E)),
       ),
-
       iconEnabledColor: Colors.white.withOpacity(0.85),
       iconDisabledColor: Colors.white.withOpacity(0.5),
       validator: (value) {
@@ -37,9 +35,9 @@ class GenderDropdownField extends StatelessWidget {
         }
         return null;
       },
-      items: const [
-        DropdownMenuItem(value: "Male", child: Text("Male")),
-        DropdownMenuItem(value: "Female", child: Text("Female")),
+      items: [
+        DropdownMenuItem(value: "Male", child: Text("Male", style: TextStyle(color: Colors.white))),
+        DropdownMenuItem(value: "Female", child: Text("Female", style: TextStyle(color: Colors.white))),
       ],
       onChanged: onChanged,
     );

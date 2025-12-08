@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';   // ⬅️ مهم جدًا
-  import 'package:legal_assistant_app/data/api/qanouny_api_service.dart';
-  import 'package:legal_assistant_app/data/repository/qanouny_repository.dart';
+import 'package:legal_assistant_app/data/api/qanouny_api_service.dart';
+import 'package:legal_assistant_app/data/repository/qanouny_repository.dart';
 import 'package:legal_assistant_app/logic/cubit/audio_query_cubit.dart';
 import 'package:legal_assistant_app/logic/cubit/file_query_cubit.dart';
 import 'package:legal_assistant_app/logic/cubit/login_cubit.dart';
 import 'package:legal_assistant_app/logic/cubit/text_query_cubit.dart';
+import 'package:legal_assistant_app/logic/cubit/upload_documnet_cubit.dart';
 import 'package:legal_assistant_app/presentation/views/splash_view.dart';
 
 Future<void> main() async {
@@ -16,11 +17,11 @@ Future<void> main() async {
   final apiService = QanounyApiService();
   final repository = QanounyRepository(apiService);
 
-  runApp(LegalAssistantApp(repository: repository));
+  runApp(QanounyApp(repository: repository));
 }
 
-class LegalAssistantApp extends StatelessWidget {
-  const LegalAssistantApp({super.key, required this.repository});
+class QanounyApp extends StatelessWidget {
+  const QanounyApp({super.key, required this.repository});
 
   final QanounyRepository repository;
 
@@ -30,9 +31,9 @@ class LegalAssistantApp extends StatelessWidget {
       value: repository,
       child: MultiBlocProvider(
         providers: [
-           BlocProvider<LoginCubit>(
-      create: (_) => LoginCubit(),
-    ),
+          BlocProvider<LoginCubit>(
+            create: (_) => LoginCubit(),
+          ),
           BlocProvider<TextQueryCubit>(
             create: (context) => TextQueryCubit(repository),
           ),
@@ -41,6 +42,10 @@ class LegalAssistantApp extends StatelessWidget {
           ),
           BlocProvider<FileQueryCubit>(
             create: (context) => FileQueryCubit(repository),
+          ),
+          // ⬅️ أضف UploadDocumentCubit هنا
+          BlocProvider<UploadDocumentCubit>(
+            create: (context) => UploadDocumentCubit(repository),
           ),
         ],
         child: MaterialApp(

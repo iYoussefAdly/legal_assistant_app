@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // لاستخدام InputFormatters
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:legal_assistant_app/core/utils/app_styles.dart';
 import 'package:legal_assistant_app/core/utils/helpers/show_snack_bar.dart';
@@ -160,7 +159,7 @@ class _SignUpViewBodyState extends State<SignUpViewBody> {
                                 TextSpan(
                                   text: "Sign in",
                                   style: AppStyles.styleRegular18.copyWith(
-                                    color: const Color(0xffAF63E8),
+                                    color: Colors.red,
                                   ),
                                 ),
                               ],

@@ -64,7 +64,7 @@ class SignInViewBody extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         CustomTextField(
-                          hintText: "enter your password",
+                          hintText: "Enter your password",
                           isItPassword: true,
                           controller: cubit.passwordController,
                           validator: (value) =>
@@ -92,7 +92,7 @@ class SignInViewBody extends StatelessWidget {
                                   TextSpan(
                                     text: "Sign Up",
                                     style: AppStyles.styleRegular18.copyWith(
-                                      color: const Color(0xffAF63E8),
+                                      color: Colors.red,
                                     ),
                                   ),
                                 ],

@@ -34,10 +34,171 @@ class QanounyApiService {
       );
     }
   }
+  
   static const String _baseUrl = 'http://52.143.145.178:8000';
   static const String _azureFunctionKey = 'nb7jrePPZdZkW_m40b-K12SRVOcGY5u1bgwXDh7ywjgoAzFuvjEF6w==';
   static const String _azureBaseUrl = 'https://sql-function-b3c7e6exa9f9acdu.francecentral-01.azurewebsites.net/api';
+  
   final Dio _dio;
+
+  Future<Map<String, dynamic>> uploadDocument({
+    required String nationalId,
+    required String filePath,
+    String? title,
+  }) async {
+    final trimmedNationalId = nationalId.trim();
+    
+    if (trimmedNationalId.isEmpty) {
+      throw const QanounyApiException('National ID is required.');
+    }
+    
+    if (filePath.isEmpty || !File(filePath).existsSync()) {
+      throw const QanounyApiException('File does not exist or path is invalid.');
+    }
+
+    try {
+      // إنشاء Dio منفصل للاتصال بـ Azure Function
+      final azureDio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(minutes: 5),
+          receiveTimeout: const Duration(minutes: 5),
+          sendTimeout: const Duration(minutes: 5),
+          responseType: ResponseType.json,
+        ),
+      );
+
+      // إضافة Logger
+      azureDio.interceptors.add(
+        PrettyDioLogger(
+          requestHeader: true,
+          requestBody: true,
+          responseHeader: false,
+          responseBody: true,
+          compact: true,
+        ),
+      );
+
+      // بناء الـ URL
+      final url = '$_azureBaseUrl/UploadDocument?code=$_azureFunctionKey';
+
+      print('[UploadDocument] ⬆️ Uploading file to: $url');
+      print('[UploadDocument] 👤 National ID: $trimmedNationalId');
+      print('[UploadDocument] 📄 File: $filePath');
+      if (title != null) print('[UploadDocument] 🏷️ Title: $title');
+
+      // إنشاء FormData
+      final fileName = filePath.split(Platform.pathSeparator).last;
+      final file = await MultipartFile.fromFile(
+        filePath,
+        filename: fileName,
+      );
+
+      // ⭐⭐⭐⭐ التصحيح: استخدام 'NationalId' بدون مسافة ⭐⭐⭐⭐
+      final formData = FormData.fromMap({
+        'NationalId': trimmedNationalId, // ⭐ الصحيح: 'NationalId' بدون مسافة
+        'file': file,
+        if (title != null && title.isNotEmpty) 'title': title,
+      });
+
+      print('[UploadDocument] 📋 FormData keys: ${formData.fields.map((f) => f.key).toList()}');
+      print('[UploadDocument] 📁 Files: ${formData.files.map((f) => f.key).toList()}');
+
+      // تنفيذ طلب POST
+      print('[UploadDocument] 🚀 Sending upload request...');
+      final Response response = await azureDio.post(
+        url,
+        data: formData,
+        options: Options(
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      print('[UploadDocument] ✅ Response status: ${response.statusCode}');
+      print('[UploadDocument] 📊 Response data: ${response.data}');
+
+      // التحقق من حالة الاستجابة
+      if (response.statusCode == 200) {
+        dynamic responseData = response.data;
+        Map<String, dynamic> result;
+        
+        print('[UploadDocument] 🎉 Upload successful!');
+
+        // تحليل الاستجابة
+        if (responseData is String) {
+          try {
+            // حاول تحويل الـ String إلى Map
+            if (responseData.trim().startsWith('{') && responseData.trim().endsWith('}')) {
+              result = jsonDecode(responseData);
+            } else if (responseData.toLowerCase().contains('success')) {
+              // إذا كان نصاً عادياً يحتوي على success
+              result = {
+                'message': responseData,
+                'status': 'success',
+                'nationalId': trimmedNationalId,
+              };
+            } else {
+              // إذا كان نصاً عادياً
+              result = {
+                'message': 'File uploaded successfully',
+                'raw_response': responseData,
+                'status': 'success',
+                'nationalId': trimmedNationalId,
+              };
+            }
+          } catch (e) {
+            print('[UploadDocument] ⚠️ Error parsing JSON response: $e');
+            result = {
+              'message': 'File uploaded successfully',
+              'raw_response': responseData,
+              'status': 'success',
+              'nationalId': trimmedNationalId,
+            };
+          }
+        } else if (responseData is Map) {
+          result = responseData.cast<String, dynamic>();
+          result['nationalId'] = trimmedNationalId; // إضافة nationalId للنتيجة
+        } else {
+          result = {
+            'data': responseData,
+            'status': 'success',
+            'nationalId': trimmedNationalId,
+          };
+        }
+
+        print('[UploadDocument] 📦 Final result: $result');
+        return result;
+      } else {
+        print('[UploadDocument] ❌ Upload failed with status: ${response.statusCode}');
+        throw QanounyApiException('Upload failed. Status: ${response.statusCode}, Response: ${response.data}');
+      }
+      
+    } on DioException catch (e) {
+      print('[UploadDocument] ❌ Dio error: ${e.message}');
+      print('[UploadDocument] 📋 Error response: ${e.response?.data}');
+      print('[UploadDocument] 🔍 Error type: ${e.type}');
+      
+      String errorMessage = 'Upload failed';
+      if (e.response?.data != null) {
+        if (e.response!.data is String && e.response!.data.contains('NationalId')) {
+          errorMessage = 'National ID is required in the form data';
+        } else if (e.response!.data is Map) {
+          errorMessage = e.response!.data['message']?.toString() ?? e.response!.data.toString();
+        } else {
+          errorMessage = e.response!.data.toString();
+        }
+      } else if (e.message != null) {
+        errorMessage = e.message!;
+      }
+      
+      throw QanounyApiException(errorMessage);
+    } catch (e) {
+      print('[UploadDocument] ❌ General error: $e');
+      throw QanounyApiException('Upload failed: ${e.toString()}');
+    }
+  }
+
   Future<Map<String, dynamic>> login({
     required String nationalId,
     required String password,
@@ -74,14 +235,11 @@ class QanounyApiService {
           ),
         );
 
-        // بناء الـ URL حسب كود Python في الوثيقة
-        // في Python: response = requests.post(f"{BASE_URL}/read_user_data?code={FUNCTION_KEY}", json=read_data)
         final url = '$_azureBaseUrl/read_user_data?code=$_azureFunctionKey';
 
         print('[Login] محاولة وفقاً لكود Python: POST $url');
         print('[Login] البيانات: {"NationalId": "$trimmedNationalId"}');
 
-        // تنفيذ طلب POST مثل كود Python تمامًا
         final Response response = await azureDio.post(
           url,
           data: {'NationalId': trimmedNationalId},
@@ -90,23 +248,18 @@ class QanounyApiService {
           ),
         );
 
-        // التحقق من حالة الاستجابة
         if (response.statusCode == 200) {
           dynamic responseData = response.data;
           Map<String, dynamic> userData;
 
           print('[Login] استجابة من السيرفر: ${response.data}');
 
-          // تحليل الاستجابة
           if (responseData is String) {
-            // البحث عن بداية JSON في النص
             final startIndex = responseData.indexOf('{');
-            final endIndex = responseData.lastIndexOf('}');
-            
+            final endIndex = responseData.lastIndexOf('}');            
             if (startIndex == -1 || endIndex == -1) {
               throw const QanounyApiException('Invalid response format from server.');
             }
-            
             try {
               final jsonString = responseData.substring(startIndex, endIndex + 1);
               userData = jsonDecode(jsonString);
@@ -120,7 +273,6 @@ class QanounyApiService {
             throw const QanounyApiException('Unexpected response type from server.');
           }
 
-          // التحقق من وجود PasswordHash
           final storedPasswordHash = userData['PasswordHash']?.toString();
           if (storedPasswordHash == null) {
             print('[Login] بيانات المستخدم المستلمة: $userData');
@@ -152,6 +304,7 @@ class QanounyApiService {
       endpoint: 'read_user_data',
     );
   }
+
   Future<Map<String, dynamic>> sendTextQuery(String question) async {
     final trimmedQuestion = question.trim();
     if (trimmedQuestion.isEmpty) {
@@ -412,7 +565,7 @@ class QanounyApiService {
         final contentType = file.contentType;
         buffer.writeln(
             '  ${fileEntry.key}: ${file.filename} '
-            '(${file.length ?? 'unknown'} bytes, '
+            '(${file.length} bytes, '
             '${contentType != null ? '${contentType.type}/${contentType.subtype}' : 'content-type: auto'})',
         );
       }

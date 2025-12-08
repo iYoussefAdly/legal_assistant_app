@@ -13,6 +13,51 @@ class QanounyRepository {
 
   final QanounyApiService _apiService;
 
+  // ========== دالة UploadDocument الجديدة ==========
+  Future<Map<String, dynamic>> uploadDocument({
+    required String nationalId,
+    required String filePath,
+    String? title,
+  }) async {
+    final sanitizedNationalId = nationalId.trim();
+    final sanitizedPath = filePath.trim();
+    
+    if (sanitizedNationalId.isEmpty) {
+      throw const QanounyRepositoryException('National ID is required.');
+    }
+    
+    if (sanitizedPath.isEmpty) {
+      throw const QanounyRepositoryException('Please select a file to upload.');
+    }
+
+    final file = File(sanitizedPath);
+    if (!file.existsSync()) {
+      throw const QanounyRepositoryException('Selected file not found.');
+    }
+
+    // التحقق من حجم الملف
+    await _validateFileSize(file);
+
+    try {
+      final payload = await _apiService.uploadDocument(
+        nationalId: sanitizedNationalId,
+        filePath: sanitizedPath,
+        title: title,
+      );
+      return payload;
+    } on QanounyApiException catch (error) {
+      throw QanounyRepositoryException(error.message);
+    } catch (e) {
+      // If it's already a repository exception, rethrow it
+      if (e is QanounyRepositoryException) {
+        rethrow;
+      }
+      throw const QanounyRepositoryException(
+        'Unable to upload the file right now. Please retry.',
+      );
+    }
+  }
+
   Future<TextQueryResponse> sendTextQuery(String question) async {
     // Validate and sanitize the question
     if (question.isEmpty) {
@@ -193,5 +238,3 @@ class QanounyRepositoryException implements Exception {
   @override
   String toString() => message;
 }
-
-

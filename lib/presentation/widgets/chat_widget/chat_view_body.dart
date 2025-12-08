@@ -9,24 +9,24 @@ import 'package:legal_assistant_app/data/models/legal_source.dart';
 import 'package:legal_assistant_app/data/models/text_query_response.dart';
 import 'package:legal_assistant_app/logic/cubit/audio_query_cubit.dart';
 import 'package:legal_assistant_app/logic/cubit/file_query_cubit.dart';
+import 'package:legal_assistant_app/logic/cubit/login_cubit.dart';
 import 'package:legal_assistant_app/logic/cubit/text_query_cubit.dart';
+import 'package:legal_assistant_app/logic/cubit/upload_documnet_cubit.dart';
 import 'package:legal_assistant_app/logic/states/audio_query_state.dart';
 import 'package:legal_assistant_app/logic/states/file_query_state.dart';
 import 'package:legal_assistant_app/logic/states/text_query_state.dart';
+import 'package:legal_assistant_app/logic/states/upload_document_state.dart';
+import 'package:legal_assistant_app/presentation/views/sign_in_view.dart';
 import 'package:legal_assistant_app/presentation/widgets/chat_widget/attachment_bottom_sheet.dart';
-import 'package:legal_assistant_app/presentation/widgets/chat_widget/bubble_chat.dart';
-import 'package:legal_assistant_app/presentation/widgets/chat_widget/bubble_chat_ai.dart';
 import 'package:legal_assistant_app/presentation/widgets/chat_widget/chat_message.dart';
 import 'package:legal_assistant_app/presentation/widgets/chat_widget/container_chat.dart';
-import 'package:legal_assistant_app/presentation/widgets/chat_widget/container_chat_bottom.dart';
-import 'package:legal_assistant_app/presentation/widgets/chat_widget/question_prompt_dialog.dart';
 import 'package:legal_assistant_app/presentation/widgets/common/answer_card.dart';
 import 'package:legal_assistant_app/presentation/widgets/common/error_message.dart';
 import 'package:legal_assistant_app/presentation/widgets/common/loading_indicator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatViewBody extends StatefulWidget {
   const ChatViewBody({super.key});
-
   @override
   State<ChatViewBody> createState() => _ChatViewBodyState();
 }
@@ -41,10 +41,10 @@ class _ChatViewBodyState extends State<ChatViewBody> {
   bool _textLoading = false;
   bool _audioLoading = false;
   bool _fileLoading = false;
+  bool _uploadLoading = false;
   String? _errorMessage;
-
-  bool get _isProcessing => _textLoading || _audioLoading || _fileLoading;
-
+  bool get _isProcessing => _textLoading || _audioLoading || _fileLoading || _uploadLoading;
+  
   @override
   void initState() {
     super.initState();
@@ -56,8 +56,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
     _messages.add(
       const ChatMessage(
         role: MessageRole.assistant,
-        content:
-            'Hello! I’m your smart legal assistant. How can I help you today?',
+        content: 'أهلاً!👋 أنا قانوني، جاهز أقدم لك المساعدة اللي تحتاجها',
       ),
     );
   }
@@ -65,7 +64,6 @@ class _ChatViewBodyState extends State<ChatViewBody> {
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context).size;
-
     return MultiBlocListener(
       listeners: [
         BlocListener<AudioQueryCubit, AudioQueryState>(
@@ -74,205 +72,377 @@ class _ChatViewBodyState extends State<ChatViewBody> {
         BlocListener<FileQueryCubit, FileQueryState>(
           listener: _handleFileState,
         ),
+        // ⭐ إضافة listener للـ UploadDocumentCubit
+        BlocListener<UploadDocumentCubit, UploadDocumentState>(
+          listener: _handleUploadState,
+        ),
       ],
       child: BlocConsumer<TextQueryCubit, TextQueryState>(
         listener: _handleTextState,
         builder: (context, state) {
-          return Padding(
-            padding: EdgeInsets.only(
-              top: media.height * .06,
-              bottom: media.height * .02,
-              left: media.width * .03,
-              right: media.width * .03,
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    ContainerChat(icon: CupertinoIcons.back),
-                    GestureDetector(
-                      onTap: _initializeChatSession,
-                      child: Container(
-                        width: media.width * .3,
-                        height: media.height * .05,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFCC6666),
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('New Chat', style: AppStyles.styleSemitBold14),
-                            SizedBox(width: media.width * .02),
-                            const Icon(
-                              Icons.restart_alt,
-                              size: 24,
-                              color: Colors.white,
-                            ),
-                          ],
-                        ),
-                      ),
+          return Container(
+            color: Colors.black,
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: media.height * .06,
+                bottom: media.height * .02,
+                left: media.width * .03,
+                right: media.width * .03,
+              ),
+              child: Column(
+                children: [
+                  _buildHeader(media),
+                  SizedBox(height: media.height * .03),                  
+                  _buildDivider(),
+                  SizedBox(height: media.height * .02),                  
+                  if (_errorMessage != null) ...[
+                    ErrorMessage(
+                      message: _errorMessage!,
+                      onClose: () => setState(() => _errorMessage = null),
                     ),
-                    ContainerChat(icon: Icons.menu),
+                    SizedBox(height: media.height * .015),
                   ],
-                ),
-                SizedBox(height: media.height * .03),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Divider(
-                        thickness: 2,
-                        color: const Color.fromRGBO(153, 44, 230, 0.3),
-                      ),
-                    ),
-                    Text('   Today   ', style: AppStyles.styleSemitBold16),
-                    Expanded(
-                      child: Divider(
-                        thickness: 2,
-                        color: const Color.fromRGBO(153, 44, 230, 0.3),
-                      ),
-                    ),
+                  
+                  // Loading Indicator
+                  if (_isProcessing) ...[
+                    const LoadingIndicator(),
+                    SizedBox(height: media.height * .02),
                   ],
-                ),
-                SizedBox(height: media.height * .02),
-                if (_errorMessage != null) ...[
-                  ErrorMessage(
-                    message: _errorMessage!,
-                    onClose: () => setState(() => _errorMessage = null),
+                  
+                  // Messages List
+                  Expanded(
+                    child: ListView.separated(
+                      controller: _scrollController,
+                      physics: const BouncingScrollPhysics(),
+                      itemBuilder: (context, index) {
+                        final message = _messages[index];
+                        if (message.role == MessageRole.user) {
+                          return _buildUserMessage(message.content);
+                        }
+                        if (message.hasMetadata) {
+                          return AnswerCard(message: message);
+                        }
+                        return _buildAssistantSimpleMessage(message.content);
+                      },
+                      separatorBuilder: (_, __) =>
+                          SizedBox(height: media.height * .02),
+                      itemCount: _messages.length,
+                    ),
                   ),
-                  SizedBox(height: media.height * .015),
-                ],
-                if (_isProcessing) ...[
-                  const LoadingIndicator(),
+                  
+                  // Input Area
                   SizedBox(height: media.height * .02),
+                  _buildInputArea(media),
                 ],
-                Expanded(
-                  child: ListView.separated(
-                    controller: _scrollController,
-                    physics: const BouncingScrollPhysics(),
-                    itemBuilder: (context, index) {
-                      final message = _messages[index];
-                      if (message.role == MessageRole.user) {
-                        return ChatBubble(message: message.content);
-                      }
-                      if (message.hasMetadata) {
-                        return AnswerCard(message: message);
-                      }
-                      return ChatBubbleAi(
-                        message: message.content,
-                        avatarImage: _avatarImage,
-                      );
-                    },
-                    separatorBuilder: (_, __) =>
-                        SizedBox(height: media.height * .02),
-                    itemCount: _messages.length,
-                  ),
-                ),
-                SizedBox(height: media.height * .02),
-                ContainerChatBottom(
-                  width: media.width,
-                  borderRadius: 10,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minHeight: media.height * .04,
-                          maxHeight: media.height * .15,
-                        ),
-                        child: SingleChildScrollView(
-                          child: TextField(
-                            controller: _questionController,
-                            focusNode: _questionFocusNode,
-                            minLines: 1,
-                            maxLines: null,
-                            textInputAction: TextInputAction.newline,
-                            keyboardType: TextInputType.multiline,
-                            decoration: InputDecoration(
-                              hintText: 'Message Qanouny AI...',
-                              hintStyle: AppStyles.styleRegular16,
-                              contentPadding: EdgeInsets.symmetric(
-                                vertical: media.height * .02,
-                                horizontal: media.width * .04,
-                              ),
-                              border: InputBorder.none,
-                            ),
-                            onSubmitted: (_) => _sendTextQuestion(),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: media.height * .01),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          GestureDetector(
-                            onTap: _openAttachmentSheet,
-                            child: ContainerChatBottom(
-                              height: media.height * .04,
-                              width: media.width * .12,
-                              borderRadius: 30,
-                              child: const Icon(Icons.add, size: 25),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => _questionFocusNode.requestFocus(),
-                            child: ContainerChatBottom(
-                              height: media.height * .04,
-                              width: media.width * .4,
-                              borderRadius: 30,
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.travel_explore, size: 22),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      'Type your question',
-                                      style: AppStyles.styleRegular14,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: _pickAudioFile,
-                            child: ContainerChatBottom(
-                              height: media.height * .04,
-                              width: media.width * .12,
-                              borderRadius: 30,
-                              child: const Icon(Icons.mic, size: 25),
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: _sendTextQuestion,
-                            child: ContainerChatBottom(
-                              height: media.height * .05,
-                              width: media.width * .1,
-                              borderRadius: 30,
-                              child: const Icon(
-                                Icons.arrow_outward_sharp,
-                                size: 25,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           );
         },
       ),
     );
   }
+
+  Widget _buildHeader(Size media) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        ContainerChat(
+          height: 40,
+          width: 40,
+          borderRadius: 20,
+          backgroundColor: Colors.grey[900],
+          borderColor: Colors.grey[700],
+          child: IconButton(
+            icon: Icon(CupertinoIcons.back, color: Colors.white, size: 20),
+            onPressed: () {
+              context.read<LoginCubit>().logout();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => SignInView()),
+              );
+            },
+          ),
+        ),
+        
+        ContainerChat(
+          width: media.width * .3,
+          height: media.height * .05,
+          borderRadius: 30,
+          backgroundColor: Colors.grey[900],
+          borderColor: Colors.grey[700],
+          child: GestureDetector(
+            onTap: _initializeChatSession,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'New Chat',
+                  style: AppStyles.styleSemitBold14.copyWith(color: Colors.white),
+                ),
+                SizedBox(width: media.width * .02),
+                Icon(
+                  Icons.restart_alt,
+                  size: 20,
+                  color: Colors.white,
+                ),
+              ],
+            ),
+          ),
+        ),        
+        ContainerChat(
+          height: 40,
+          width: 40,
+          borderRadius: 20,
+          backgroundColor: Colors.grey[900],
+          borderColor: Colors.grey[700],
+          child: IconButton(
+            icon: Icon(Icons.menu, color: Colors.white, size: 20),
+            onPressed: () {
+              print('Menu button pressed');
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDivider() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Divider(
+            thickness: 1,
+            color: Colors.grey[800]!,
+          ),
+        ),
+        Text(
+          '   Today   ',
+          style: AppStyles.styleSemitBold16.copyWith(color: Colors.grey[400]),
+        ),
+        Expanded(
+          child: Divider(
+            thickness: 1,
+            color: Colors.grey[800]!,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUserMessage(String content) {
+    return Container(
+      margin: const EdgeInsets.only(right: 16, left: 60),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Color(0xff770000).withOpacity(0.3),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(18),
+                  topRight: Radius.circular(18),
+                  bottomLeft: Radius.circular(18),
+                  bottomRight: Radius.circular(4),
+                ),
+                border: Border.all(
+                  color: Colors.red[800]!.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Text(
+                content,
+                style: AppStyles.styleRegular16.copyWith(
+                  color: Colors.white,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.blue[800],
+              border: Border.all(color: Colors.blue[600]!),
+            ),
+            child: const Icon(
+              Icons.person,
+              size: 16,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssistantSimpleMessage(String content) {
+    return Container(
+      margin: const EdgeInsets.only(left: 16, right: 60, top: 8, bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            margin: const EdgeInsets.only(top: 4),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(15),
+              image: const DecorationImage(
+                image: AssetImage('assets/images/bubble.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    'Qanouny Assistant',
+                    style: AppStyles.styleSemitBold14.copyWith(
+                      color: Colors.white70,
+                    ),
+                  ),
+                ),
+                
+                Text(
+                  content,
+                  style: AppStyles.styleRegular16.copyWith(
+                    color: Colors.white,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputArea(Size media) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[900],
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.grey[800]!),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _questionController,
+                  focusNode: _questionFocusNode,
+                  style: AppStyles.styleRegular16.copyWith(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Message Qanouny AI...',
+                    hintStyle: AppStyles.styleRegular16.copyWith(
+                      color: Colors.grey[500],
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                  ),
+                  maxLines: 5,
+                  minLines: 1,
+                  onSubmitted: (_) => _sendTextQuestion(),
+                ),
+              ),
+              IconButton(
+                onPressed: _sendTextQuestion,
+                icon: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Color(0xff770000),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_upward,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildActionButton(
+                  icon: Icons.attach_file,
+                  label: 'File',
+                  onTap: _openAttachmentSheet,
+                ),
+                _buildActionButton(
+                  icon: Icons.mic,
+                  label: 'Audio',
+                  onTap: _pickAudioFile,
+                ),
+                _buildActionButton(
+                  icon: Icons.keyboard,
+                  label: 'Type',
+                  onTap: () => _questionFocusNode.requestFocus(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.grey[800],
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: AppStyles.styleRegular12.copyWith(color: Colors.white),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // =============== STATE HANDLERS ===============
 
   void _handleTextState(BuildContext context, TextQueryState state) {
     setState(() {
@@ -309,6 +479,21 @@ class _ChatViewBodyState extends State<ChatViewBody> {
       _setError(state.message);
     }
   }
+
+  // ⭐ إضافة handler للـ UploadDocumentCubit
+  void _handleUploadState(BuildContext context, UploadDocumentState state) {
+    setState(() {
+      _uploadLoading = state is UploadDocumentLoading;
+    });
+
+    if (state is UploadDocumentSuccess) {
+      _showUploadSuccessMessage(state.response);
+    } else if (state is UploadDocumentFailure) {
+      _setError('Upload failed: ${state.message}');
+    }
+  }
+
+  // =============== DOCUMENT UPLOAD ===============
 
   Future<void> _sendTextQuestion() async {
     final rawText = _questionController.text;
@@ -361,28 +546,196 @@ class _ChatViewBodyState extends State<ChatViewBody> {
     );
   }
 
+  // ⭐⭐⭐⭐ دالة _pickDocument المعدلة للـ upload ⭐⭐⭐⭐
   Future<void> _pickDocument({required bool isImage}) async {
-    final allowedExtensions = isImage
-        ? const ['png', 'jpg', 'jpeg']
-        : const ['pdf'];
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: allowedExtensions,
-    );
-    final file = result?.files.single;
-    if (file?.path == null) return;
+    try {
+      print('=== Starting document upload ===');
+      
+      // 1. جلب الـ nationalId من SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final nationalId = prefs.getString('nationalId');
+      
+      if (nationalId == null || nationalId.isEmpty) {
+        _setError('Please login first to upload documents.');
+        print('❌ No nationalId found in SharedPreferences');
+        return;
+      }
+      
+      print('✅ Found nationalId: $nationalId');
+      
+      // 2. اختيار الملف
+      final allowedExtensions = isImage
+          ? const ['png', 'jpg', 'jpeg']
+          : const ['pdf'];
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: allowedExtensions,
+      );
+      
+      if (result == null || result.files.isEmpty) {
+        print('❌ No file selected');
+        return;
+      }
+      
+      final file = result.files.first;
+      if (file.path == null) {
+        print('❌ File path is null');
+        return;
+      }
+      
+      print('📄 Selected file: ${file.name}, path: ${file.path}');
+      
+      // 3. سؤال المستخدم (اختياري)
+      final question = await _showSimpleQuestionDialog(context);
+      
+      // 4. إضافة رسالة المستخدم للـ chat
+      if (question != null && question.isNotEmpty) {
+        _addUserMessage(question, kind: MessageKind.file);
+      } else {
+        _addUserMessage('Uploading document: ${file.name}', kind: MessageKind.file);
+      }
+      
+      // 5. استدعاء الـ upload endpoint
+      print('📤 Calling UploadDocumentCubit with:');
+      print('   - nationalId: $nationalId');
+      print('   - filePath: ${file.path}');
+      print('   - title: ${file.name}');
+      
+      context.read<UploadDocumentCubit>().uploadDocument(
+        nationalId: nationalId,
+        filePath: file.path!,
+        title: file.name,
+      );
+      
+      // 6. (اختياري) إرسال السؤال للـ AI إذا كان موجود
+      if (question != null && question.isNotEmpty) {
+        await Future.delayed(const Duration(seconds: 1));
+        context.read<FileQueryCubit>().sendFileQuery(file.path!, question);
+      }
+      
+    } catch (error) {
+      print('❌ Error in _pickDocument: $error');
+      _setError('Error uploading document: ${error.toString()}');
+    }
+  }
 
-    if (!mounted) return;
-    final question = await showQuestionPromptDialog(
-      context,
-      initialValue: _questionController.text.trim(),
+  // ⭐ دالة بسيطة للسؤال
+  Future<String?> _showSimpleQuestionDialog(BuildContext context) async {
+    final controller = TextEditingController();
+    
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: Text(
+            'Document Question',
+            style: AppStyles.styleSemitBold16.copyWith(color: Colors.white),
+          ),
+          content: TextField(
+            controller: controller,
+            style: AppStyles.styleRegular16.copyWith(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'What would you like to know about this document?',
+              hintStyle: AppStyles.styleRegular16.copyWith(color: Colors.grey[500]),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[700]!),
+              ),
+            ),
+            maxLines: 3,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Skip',
+                style: AppStyles.styleRegular16.copyWith(color: Colors.grey[400]),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: Text(
+                'Ask',
+                style: AppStyles.styleRegular16.copyWith(color: Colors.blue[300]!),
+              ),
+            ),
+          ],
+        );
+      },
     );
-    if (!mounted || question == null) return;
+  }
 
-    _questionController.clear();
-    _addUserMessage(question, kind: MessageKind.file);
-    _clearError();
-    context.read<FileQueryCubit>().sendFileQuery(file!.path!, question);
+  // ⭐ دالة لعرض نجاح الـ upload
+  void _showUploadSuccessMessage(Map<String, dynamic> response) {
+    final documentId = response['document_id'];
+    final blobPath = response['blob_path'];
+    final truncatedId = documentId != null && documentId.length > 8 
+        ? '${documentId.substring(0, 8)}...' 
+        : documentId ?? 'N/A';
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '✅ Document uploaded successfully!',
+          style: AppStyles.styleRegular14.copyWith(color: Colors.white),
+        ),
+        backgroundColor: Colors.green[800],
+        duration: const Duration(seconds: 3),
+      ),
+    );
+    
+    print('📄 Upload successful!');
+    print('   Document ID: $documentId');
+    print('   Blob Path: $blobPath');
+  }
+
+  Future<String?> _showQuestionPromptDialog(
+    BuildContext context, {
+    String initialValue = '',
+  }) async {
+    final controller = TextEditingController(text: initialValue);
+    return showDialog<String>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey[900],
+          title: Text(
+            'Document Question',
+            style: AppStyles.styleSemitBold16.copyWith(color: Colors.white),
+          ),
+          content: TextField(
+            controller: controller,
+            style: AppStyles.styleRegular16.copyWith(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'What would you like to know about this document?',
+              hintStyle: AppStyles.styleRegular16.copyWith(color: Colors.grey[500]),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: Colors.grey[700]!),
+              ),
+            ),
+            maxLines: 3,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: AppStyles.styleRegular16.copyWith(color: Colors.grey[400]),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, controller.text.trim()),
+              child: Text(
+                'Submit',
+                style: AppStyles.styleRegular16.copyWith(color: Colors.blue[300]!),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _initializeChatSession() async {
@@ -401,8 +754,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
           ..add(
             const ChatMessage(
               role: MessageRole.assistant,
-              content:
-                  'Conversation cleared. I am ready to help with a new question.',
+              content: '"تم مسح المحادثة. أنا جاهز لمساعدتك في سؤال جديد."',
             ),
           );
         _errorMessage = null;
@@ -413,7 +765,9 @@ class _ChatViewBodyState extends State<ChatViewBody> {
             response.message.isEmpty
                 ? 'Conversation history reset successfully.'
                 : response.message,
+            style: AppStyles.styleRegular14.copyWith(color: Colors.white),
           ),
+          backgroundColor: Colors.grey[800],
         ),
       );
     }
@@ -431,18 +785,42 @@ class _ChatViewBodyState extends State<ChatViewBody> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Start a new chat'),
+              backgroundColor: Colors.grey[900],
+              title: Text(
+                'Start a new chat',
+                style: AppStyles.styleSemitBold16.copyWith(color: Colors.white),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(labelText: 'Name'),
+                    style: AppStyles.styleRegular16.copyWith(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Name',
+                      labelStyle: AppStyles.styleRegular14.copyWith(color: Colors.grey[400]),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey[700]!),
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.blue[300]!),
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: genderController,
-                    decoration: const InputDecoration(labelText: 'Gender'),
+                    style: AppStyles.styleRegular16.copyWith(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Gender',
+                      labelStyle: AppStyles.styleRegular14.copyWith(color: Colors.grey[400]),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey[700]!),
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.blue[300]!),
+                      ),
+                    ),
                   ),
                   if (errorText != null) ...[
                     const SizedBox(height: 12),
@@ -456,16 +834,18 @@ class _ChatViewBodyState extends State<ChatViewBody> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(
+                    'Cancel',
+                    style: AppStyles.styleRegular16.copyWith(color: Colors.grey[400]),
+                  ),
                 ),
-                FilledButton(
+                TextButton(
                   onPressed: () {
                     final name = nameController.text.trim();
                     final gender = genderController.text.trim();
                     if (name.isEmpty || gender.isEmpty) {
                       setState(
-                        () => errorText =
-                            'Please provide both your name and gender.',
+                        () => errorText = 'Please provide both your name and gender.',
                       );
                       return;
                     }
@@ -473,7 +853,10 @@ class _ChatViewBodyState extends State<ChatViewBody> {
                       context,
                     ).pop(_ChatInitPayload(name: name, gender: gender));
                   },
-                  child: const Text('Start'),
+                  child: Text(
+                    'Start',
+                    style: AppStyles.styleRegular16.copyWith(color: Colors.blue[300]!),
+                  ),
                 ),
               ],
             );
@@ -504,8 +887,7 @@ class _ChatViewBodyState extends State<ChatViewBody> {
   }
 
   void _addAudioConversation(AudioQueryResponse response) {
-    final userQuestion =
-        (response.transcript != null && response.transcript!.trim().isNotEmpty)
+    final userQuestion = (response.transcript != null && response.transcript!.trim().isNotEmpty)
         ? response.transcript!
         : response.query;
     _addUserMessage(userQuestion, kind: MessageKind.audio);
@@ -556,9 +938,14 @@ class _ChatViewBodyState extends State<ChatViewBody> {
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
+
+      final position = _scrollController.position;
+      final fullExtent = position.maxScrollExtent;
+      final viewport = position.viewportDimension;
+      final target = fullExtent - viewport + 80;
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
+        target < 0 ? 0 : target,
+        duration: const Duration(milliseconds: 250),
         curve: Curves.easeOut,
       );
     });
