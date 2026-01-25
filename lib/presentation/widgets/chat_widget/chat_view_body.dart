@@ -739,133 +739,60 @@ class _ChatViewBodyState extends State<ChatViewBody> {
   }
 
   Future<void> _initializeChatSession() async {
-    final initPayload = await _showChatInitDialog();
-    if (!mounted || initPayload == null) return;
-    final cubit = context.read<TextQueryCubit>();
-    final response = await cubit.initializeChat(
-      name: initPayload.name,
-      gender: initPayload.gender,
-    );
-    if (!mounted) return;
-    if (response != null && response.success) {
-      setState(() {
-        _messages
-          ..clear()
-          ..add(
-            const ChatMessage(
-              role: MessageRole.assistant,
-              content: '"تم مسح المحادثة. أنا جاهز لمساعدتك في سؤال جديد."',
-            ),
-          );
-        _errorMessage = null;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            response.message.isEmpty
-                ? 'Conversation history reset successfully.'
-                : response.message,
-            style: AppStyles.styleRegular14.copyWith(color: Colors.white),
-          ),
-          backgroundColor: Colors.grey[800],
-        ),
+    try {
+      // 1. جلب الـ name و gender من SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final name = prefs.getString('fullName') ?? 'User';
+      final gender = prefs.getString('gender') ?? 'Unknown';
+      
+      print('✅ Retrieved from SharedPreferences:');
+      print('   - name: $name');
+      print('   - gender: $gender');
+      
+      if (!mounted) return;
+      
+      // 2. استدعاء الـ initializeChat API
+      final cubit = context.read<TextQueryCubit>();
+      final response = await cubit.initializeChat(
+        name: name,
+        gender: gender,
       );
+      
+      if (!mounted) return;
+      
+      // 3. معالجة الـ response وإعادة تعيين المحادثة
+      if (response != null && response.success) {
+        setState(() {
+          _messages
+            ..clear()
+            ..add(
+              const ChatMessage(
+                role: MessageRole.assistant,
+                content: '"تم مسح المحادثة. أنا جاهز لمساعدتك في سؤال جديد."',
+              ),
+            );
+          _errorMessage = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              response.message.isEmpty
+                  ? 'Conversation history reset successfully.'
+                  : response.message,
+              style: AppStyles.styleRegular14.copyWith(color: Colors.white),
+            ),
+            backgroundColor: Colors.grey[800],
+          ),
+        );
+      } else {
+        _setError('Failed to initialize chat session. Please try again.');
+      }
+    } catch (error) {
+      print('❌ Error in _initializeChatSession: $error');
+      _setError('Error initializing chat session: ${error.toString()}');
     }
   }
 
-  Future<_ChatInitPayload?> _showChatInitDialog() async {
-    final nameController = TextEditingController();
-    final genderController = TextEditingController();
-    String? errorText;
-
-    final result = await showDialog<_ChatInitPayload>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: Colors.grey[900],
-              title: Text(
-                'Start a new chat',
-                style: AppStyles.styleSemitBold16.copyWith(color: Colors.white),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: nameController,
-                    style: AppStyles.styleRegular16.copyWith(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Name',
-                      labelStyle: AppStyles.styleRegular14.copyWith(color: Colors.grey[400]),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.blue[300]!),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: genderController,
-                    style: AppStyles.styleRegular16.copyWith(color: Colors.white),
-                    decoration: InputDecoration(
-                      labelText: 'Gender',
-                      labelStyle: AppStyles.styleRegular14.copyWith(color: Colors.grey[400]),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.grey[700]!),
-                      ),
-                      focusedBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.blue[300]!),
-                      ),
-                    ),
-                  ),
-                  if (errorText != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      errorText!,
-                      style: const TextStyle(color: Colors.redAccent),
-                    ),
-                  ],
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    'Cancel',
-                    style: AppStyles.styleRegular16.copyWith(color: Colors.grey[400]),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () {
-                    final name = nameController.text.trim();
-                    final gender = genderController.text.trim();
-                    if (name.isEmpty || gender.isEmpty) {
-                      setState(
-                        () => errorText = 'Please provide both your name and gender.',
-                      );
-                      return;
-                    }
-                    Navigator.of(
-                      context,
-                    ).pop(_ChatInitPayload(name: name, gender: gender));
-                  },
-                  child: Text(
-                    'Start',
-                    style: AppStyles.styleRegular16.copyWith(color: Colors.blue[300]!),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-    return result;
-  }
 
   void _addUserMessage(String text, {MessageKind kind = MessageKind.text}) {
     setState(() {
@@ -964,11 +891,4 @@ class _ChatViewBodyState extends State<ChatViewBody> {
       });
     }
   }
-}
-
-class _ChatInitPayload {
-  const _ChatInitPayload({required this.name, required this.gender});
-
-  final String name;
-  final String gender;
 }
