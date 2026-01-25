@@ -16,7 +16,7 @@ void main() {
       (WidgetTester tester) async {
     final repository = QanounyRepository(QanounyApiService());
 
-    await tester.pumpWidget(LegalAssistantApp(repository: repository));
+    await tester.pumpWidget(QanounyApp(repository: repository));
 
     expect(find.byType(SplashScreen), findsOneWidget);
   });
