@@ -1,0 +1,4 @@
+web/* linguist-vendored
+build/* linguist-generated
+doc/** linguist-documentation
+*.html linguist-detectable=false
